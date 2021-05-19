@@ -1,0 +1,110 @@
+---
+title: "FP 653 Project Script"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+#load librarys 
+library(tidyverse)
+library(janitor)
+library(ggplot2)
+library(here)
+library(rio)
+library(usmap)
+library(maps)
+
+```
+
+
+```{r}
+#bring in data
+
+county_sch <- import(here("schools_county_csv2.xlsx")) %>% 
+  clean_names() %>%
+  as_tibble()
+
+#need the variable 'fips' for mapping
+cmap <- rename(county_sch, "fips" = "countyfips4")
+
+#only keep 2020 data
+cmap2020 <- 
+  cmap %>% 
+    filter(year == 2020)
+
+#future notes, potentially merge other datasets usings fips and joins
+
+#we may not need these next two data sets
+#district_sch <- import(here("schools_district_csv.csv")) %>% 
+#  clean_names() %>%
+#  as_tibble()
+
+#state_sch <- import(here("schools_state_csv.csv")) %>% 
+#  clean_names() %>%
+#  as_tibble()
+
+#check min max of share_all_closed_50 for scaling reasons
+min(cmap2020$share_all_closed_50, na.rm = T)
+max(cmap2020$share_all_closed_50, na.rm = T)
+mean(cmap2020$share_all_closed_50, na.rm = T)
+sd(cmap2020$share_all_closed_50, na.rm = T)
+
+
+```
+
+```{r}
+#functions for later
+#function1, save plots to a folder 
+
+
+#function2, convert month numbers into indicative string 
+
+```
+
+
+```{r}
+#plotting maps
+
+# us map with counties
+plot_usmap(regions = "counties", data = cmap, values = "share_all_closed_75") + 
+  labs(title = "title",
+       subtitle = "subtitle here") + 
+  theme(panel.background = element_rect(color = "black", fill = "lightblue"))
+
+#us map with counties per month
+p<-plot_usmap(regions = "counties", data = cmap2020, values = "share_all_closed_50") + 
+  scale_fill_continuous(name = "2019 over 2020 change ratio in visits", na.value = "white") +
+  facet_wrap(~month) +
+  labs(title = glue("Schools experiencing a year-over-year decline of at least 50 percent for month:{cmap2020$month}"),
+       subtitle = "subtitle here") + 
+  theme(legend.position = "right")
+p
+
+#adding state boundaries
+states <- plot_usmap(
+  "states", 
+  color = "black",
+  fill = alpha(0.01)
+) 
+
+states
+
+
+
+#function to output new map for each month? we can do this with facet_wrap
+```
+
+```{r}
+#saving plots to file
+
+
+```
+
+```{r}
+#shiny app to toggle between months of the 2020 year
+
+```
