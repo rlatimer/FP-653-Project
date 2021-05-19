@@ -37,10 +37,17 @@ cmap <- rename(county_sch, "fips" = "countyfips4")
 
 # us map with counties
 
-plot_usmap(regions = "counties", data = cmap, values = "share_all_closed_75") + 
+p<-plot_usmap(regions = "counties", data = cmap, values = "share_all_closed_50") + 
   labs(title = "title",
        subtitle = "subtitle here") + 
   theme(panel.background = element_rect(color = "black", fill = "lightblue"))
+
+#adding state boundaries
+states <- plot_usmap(
+  "states", 
+  color = "black",
+  fill = alpha(0.01)
+) 
 
 #more formatting for map
 
