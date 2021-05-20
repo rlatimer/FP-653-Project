@@ -139,7 +139,8 @@ output$map <- renderPlot({
         glue("Average Year-Over-Year % Change in School Visitors"),
        glue("Percent of Schools Experiencing A Year-Over-Year Decline of at least {pct()} percent for month"))) +
     scale_fill_continuous(type = "viridis", limits = c(-100, 100))
-})
+}) %>% 
+    bindCache(input$month, input$share_closed)
 
 
 
