@@ -12,12 +12,12 @@ library(plotly)
 library(scales)
 library(tidyverse)
 library(shinythemes)
-library(DT)
-library(shinydashboard)
+library(usmap)
 library(urbnmapr)
 library(viridis)
 library(rjson)
 library(stringr)
+library(glue)
 
 
 ## Map Data
@@ -68,7 +68,7 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                 
                 # Application title
                 titlePanel("Attendance Change App"),
-                h4("Chris Ives"),
+                h5("Chris Ives, Tess Sameshima, Rachel Latimer"),
                 
                 # Sidebar with a slider input for number of bins 
                 sidebarLayout(
@@ -78,7 +78,8 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                         selectInput("share_closed", "Variable of Interest", c("% of Schools With >25% decline in visitors" = "closed_25",
                                                                               "% of Schools With >50% decline in visitors" = "closed_50",
                                                                               "% of Schools With >75% decline in visitors" = "closed_75",
-                                                                              "Mean % Change in School Visistors" = "mean_change"))
+                                                                              "Mean % Change in School Visistors" = "mean_change")),
+                        width = 3
                     ),
                     
                     # Show a plot of the generated distribution
