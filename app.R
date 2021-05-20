@@ -68,7 +68,8 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                 
                 # Application title
                 titlePanel("Attendance Change App"),
-                h5("Chris Ives, Tess Sameshima, Rachel Latimer"),
+               h5("Compares the year-over-year change in school attendance during 2020"),
+                h6("Chris Ives, Tess Sameshima, Rachel Latimer"),
                 
                 # Sidebar with a slider input for number of bins 
                 sidebarLayout(
@@ -141,7 +142,7 @@ output$map <- renderPlot({
        glue("Percent of Schools Experiencing A Year-Over-Year Decline of at least {pct()} percent for month"))) +
     scale_fill_continuous(type = "viridis", limits = c(-100, 100))
 }) %>% 
-    bindCache(input$month, input$share_closed)
+    bindCache(input$month, input$share_closed, input$grade)
 
 
 
