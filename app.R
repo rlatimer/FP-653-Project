@@ -6,6 +6,9 @@
 #
 #    http://shiny.rstudio.com/
 #
+# This app relies on 'urbnmapr'. Users may need to install this first by running the following line:
+# devtools::install_github("UrbanInstitute/urbnmapr")
+
 
 library(shiny)
 library(plotly)
@@ -69,7 +72,7 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                 # Application title
                 titlePanel("Attendance Change App"),
                h5("Compares the year-over-year change in school attendance during 2020"),
-                h6("Chris Ives, Tess Sameshima, Rachel Latimer"),
+                h6("Chris Ives, Tess Sameshima, Rachael Latimer"),
                 
                 # Sidebar with a slider input for number of bins 
                 sidebarLayout(
