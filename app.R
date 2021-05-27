@@ -82,7 +82,7 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                         selectInput("share_closed", "Variable of Interest", c("% of Schools With >25% decline in visitors" = "closed_25",
                                                                               "% of Schools With >50% decline in visitors" = "closed_50",
                                                                               "% of Schools With >75% decline in visitors" = "closed_75",
-                                                                              "Mean % Change in School Visistors" = "mean_change")),
+                                                                              "Mean % Change in School Visitors" = "mean_change")),
                         width = 3
                     ),
                     
