@@ -14,6 +14,8 @@ library(tidyverse)
 library(shinythemes)
 library(usmap)
 library(urbnmapr)
+# devtools::install_github(“UrbanInstitute/urbnmapr”)
+#install direct from github for R version 4.0.2
 library(viridis)
 library(rjson)
 library(stringr)

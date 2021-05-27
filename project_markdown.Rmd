@@ -23,6 +23,7 @@ library(maps)
 
 ```{r}
 #bring in data
+# might need to make a project to be able to have others readin files for reproducability
 
 county_sch <- import(here("schools_county_csv2.xlsx")) %>% 
   clean_names() %>%
@@ -100,8 +101,7 @@ states
 
 ```{r}
 #saving plots to file
-
-
+#this could be good for a map() or potentially map_dfr()!
 ```
 
 ```{r}
