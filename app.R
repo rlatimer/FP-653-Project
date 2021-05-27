@@ -6,6 +6,9 @@
 #
 #    http://shiny.rstudio.com/
 #
+#if you don't already have the devtools package running, uncomment line 10
+# install.packages("devtools")
+devtools::install_github("UrbanInstitute/urbnmapr")
 
 library(shiny)
 library(plotly)
