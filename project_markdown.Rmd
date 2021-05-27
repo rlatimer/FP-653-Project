@@ -34,7 +34,8 @@ cmap <- rename(county_sch, "fips" = "countyfips4")
 #only keep 2020 data
 cmap2020 <- 
   cmap %>% 
-    filter(year == 2020)
+    filter(year == 2020) %>% 
+      group_by(month)
 
 #future notes, potentially merge other datasets usings fips and joins
 
@@ -62,6 +63,9 @@ sd(cmap2020$share_all_closed_50, na.rm = T)
 
 
 #function2, convert month numbers into indicative string 
+numbers_to_months <- function(data, col) {
+  data[,col] <- #Specify numbers 1-12 and replace with approrpiate month name  
+}
 
 ```
 
@@ -79,7 +83,7 @@ plot_usmap(regions = "counties", data = cmap, values = "share_all_closed_75") +
 p<-plot_usmap(regions = "counties", data = cmap2020, values = "share_all_closed_50") + 
   scale_fill_continuous(name = "2019 over 2020 change ratio in visits", na.value = "white") +
   facet_wrap(~month) +
-  labs(title = glue("Schools experiencing a year-over-year decline of at least 50 percent for month:{cmap2020$month}"),
+  labs(title = glue("Schools experiencing a year-over-year decline of at least 50 percent for month:{cmap2020$month}"), #need to figure out how to glue properly
        subtitle = "subtitle here") + 
   theme(legend.position = "right")
 p
