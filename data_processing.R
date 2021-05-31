@@ -17,6 +17,7 @@ covid_data <- map2_dfr(grid$months, grid$states, ~read.socrata(glue("https://dat
 export(covid_data, "west_coast_covid_data.csv")
 
 
+# Count Cases by County and Age Group
 covid_data <- import("west_coast_covid_data.csv")
 
 county_covid <- covid_data %>%
@@ -24,25 +25,32 @@ county_covid <- covid_data %>%
   group_by(case_month, county_fips_code, age_group) %>% 
   nest() %>% 
   mutate(total_cases = map_dbl(data, ~nrow(.x)),
-         age_group = ifelse(is.na(age_group), "Unknown", age_group)) %>% 
+         age_group = ifelse(is.na(age_group), "Unknown", age_group),
+         case_month = as.numeric(
+           substr(case_month, 6, 7))) %>% 
   select(-data) %>% 
-  arrange(county_fips_code, case_month)
+  arrange(county_fips_code, case_month) %>% 
+  rename(fips = county_fips_code,
+         month = case_month)
 
 export(county_covid, "county_case_counts.csv")
 
-covid_data %>% nrow()
 ## Process Attendance Data
 county_data <- read.csv("schools_county_csv.csv") %>% 
   filter(year == 2020) %>% 
   rename(fips = countyfips3) %>% 
-  mutate(county_fips = as.character(county_fips),
-         county_fips = str_pad(county_fips, width = 5, side = "left", pad = "0"),
+  mutate(fips = as.character(fips),
+         fips = str_pad(fips, width = 5, side = "left", pad = "0"),
          across(7:18, ~ .x *100))
+
+
+export(county_data, "app_attendance_data.csv")
+
 
 
 ## Import Map Data
 map_url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
 
-counties_json <- rjson::fromJSON(file=url) %>% 
+counties_json <- rjson::fromJSON(file = url) %>% 
   unnest()
   
