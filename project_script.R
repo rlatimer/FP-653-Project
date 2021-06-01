@@ -8,6 +8,7 @@ library(rio)
 library(usmap)
 library(maps)
 library(glue)
+library(repurrrsive)
 #bring in data
 county_sch <- import(here("schools_county_csv2.xlsx")) %>% 
   clean_names() %>%
@@ -55,13 +56,33 @@ states
 
 #more formatting for map
 
+#creating a plot for  each county using CDC data 
+
+cdc <- import(here("county_case_counts.csv")) %>% 
+  clean_names() %>%
+  as_tibble()
 
 
+cdc_plots <- cdc %>% 
+  group_by( fips, age_group) %>% 
+  nest() %>% 
+  mutate(plot = pmap(list(fips, age_group, data), ~{
+    ggplot(..3, aes(case_month, total_cases)) +
+      geom_point() +
+      scale_x_discrete(limits = c(0, max(cdc$case_month)), 
+                       expand = c(0, 0)) +
+      labs(title = glue("Total cases in {.x} over 2020"),
+           x = "Month",
+           y = "Total Cases")
+  })
+  )
 
 
-#function to output new map for each month?
-#may not need a function for this since we can do this with facet_wrap
+fs::dir_create(here::here("plots"))
+county <- str_replace_all(tolower(cdc_plots$fips), " ", "-")
+path <- here::here("plots", glue("{county}.png"))
 
-
-
-#shiny app to toggle between months of the 2020 year
+walk2(path, cdc_plots$plot, ggsave,
+      width = 9.5, 
+      height = 6.5,
+      dpi = 500)
