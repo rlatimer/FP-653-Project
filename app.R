@@ -9,7 +9,7 @@
 # This app relies on 'urbnmapr'. Users may need to install this first by running the following line:
 # devtools::install_github("UrbanInstitute/urbnmapr")
 
-
+needs(tidyverse, sf, tmaptools, tmap)
 library(shiny)
 library(plotly)
 library(scales)
@@ -23,22 +23,39 @@ library(stringr)
 library(glue)
 library(RSocrata)
 
+tmap_mode("view")
 g <- list(
     scope = 'usa',
     projection = list(type = 'albers usa'),
     showlakes = TRUE,
     lakecolor = toRGB('white')
 )
-geo_data <- urbnmapr::counties %>% 
-    rename(fips = county_fips)
+
+geo_data <- read_sf("us_county_geom.shp")
 
 covid_cases <- read_csv("county_case_counts.csv")
 
 county_data <- read_csv("app_attendance_data.csv")
 
+county_data <- left_join(geo_data, county_data)
 
+tm_shape(test) +
+    tm_polygons("number_schools")
 
+ggplot(test) +
+    geom_sf(aes(fill = number_schools, color = number_schools))
 
+centroids <- st_centroid(test)
+
+centroids <- centroids %>% 
+    mutate(county = str_replace_all(county_name, " County", ""))
+
+tm_shape(test) +
+    tm_polygons("number_schools",
+                style = "cont") +
+    tm_shape(centroids) +
+    tm_text("county", size = 0.5) +
+    tm_layout(legend.outside = TRUE)
 # 
 # county_map <- counties %>% 
 #     mutate(county_fips = as.character(county_fips))
@@ -81,13 +98,15 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                                                                               "% of Schools With >50% decline in visitors" = "closed_50",
                                                                               "% of Schools With >75% decline in visitors" = "closed_75",
                                                                               "Mean % Change in School Visitors" = "mean_change")),
+                        textInput("state", label = "State"),
                         width = 3
                     ),
                     
                     # Show a plot of the generated distribution
                     mainPanel(
                         tabsetPanel(type = "tabs",
-                        tabPanel("GGPlots", plotOutput("map")),
+                        tabPanel("GGPlots", plotOutput("map"),
+                                 tmapOutput("tmap")),
                         tabPanel("Plotly", plotlyOutput("plotly"), h5("Rendering takes some time."))
                     )
                 ))
@@ -99,6 +118,7 @@ server <- function(input, output) {
     month <- reactive({input$month})
     grade <- reactive({input$grade})
     share_closed <- reactive({input$share_closed})
+    state <- reactive({input$state})
     
     pct <- reactive({
         str_sub(share_closed(), -2, -1)
@@ -116,6 +136,12 @@ server <- function(input, output) {
 data <- reactive({
     county_data %>% 
         filter(month == month())
+})
+
+state_data <- reactive({
+    county_data %>% 
+        filter(month == month(),
+               state_abb == state())
 })
 
     # output$map <- renderPlot({
@@ -150,6 +176,12 @@ output$map <- renderPlot({
 }) %>%
     bindCache(input$month, input$share_closed, input$grade)
 
+output$tmap <- renderTmap({
+    tm_shape(state_data()) +
+    tm_polygons(variable()) +
+    tm_shape(centroids) +
+    tm_text("county", size = 0.5)
+})
 
 
 #adding state boundaries
