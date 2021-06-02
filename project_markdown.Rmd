@@ -24,7 +24,7 @@ library(maps)
 ```{r}
 #bring in data
 
-county_sch <- import(here("schools_county_csv2.xlsx")) %>% 
+county_sch <- import(here("schools_county_csv2.xlsx")) %>% #create a project to house your entire project within to help this; my machine was unable to load this file because it couldn't find it 
   clean_names() %>%
   as_tibble()
 
