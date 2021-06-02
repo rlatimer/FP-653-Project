@@ -23,20 +23,28 @@ library(stringr)
 library(glue)
 library(RSocrata)
 
-
-
 g <- list(
     scope = 'usa',
     projection = list(type = 'albers usa'),
     showlakes = TRUE,
     lakecolor = toRGB('white')
 )
+geo_data <- urbnmapr::counties %>% 
+    rename(fips = county_fips)
+
+covid_cases <- read_csv("county_case_counts.csv")
+
+county_data <- read_csv("app_attendance_data.csv")
+
+
+
+
 # 
 # county_map <- counties %>% 
 #     mutate(county_fips = as.character(county_fips))
 
-
-# county_data %>%
+# 
+# test %>%
 #     ggplot(aes(long, lat, group = group, fill = mean_all_change)) +
 #     geom_polygon(color = NA) +
 #     coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
@@ -49,7 +57,7 @@ g <- list(
 #               mean_high = mean(mean_middlehigh_change)) %>%
 #     rename(fips = county_fips)
 
-# county_sum %>%
+# test %>%
 #     ggplot(aes(long, lat, group = group, fill = mean_all)) +
 #     geom_polygon(color = NA) +
 #     coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
