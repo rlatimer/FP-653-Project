@@ -63,17 +63,22 @@ cdc <- import(here("county_case_counts.csv")) %>%
   as_tibble()
 
 
+
 cdc_plots <- cdc %>% 
-  group_by( fips, age_group) %>% 
+  group_by( fips) %>% 
   nest() %>% 
-  mutate(plot = pmap(list(fips, age_group, data), ~{
-    ggplot(..3, aes(case_month, total_cases)) +
+  mutate(plot = pmap(list(fips, data), ~{
+    ggplot(..2, aes(x=case_month,
+                    y=total_cases,
+                    color = age_group)) +
       geom_point() +
+      geom_line(alpha = 0.7, size = 1) +
       scale_x_discrete(limits = c(0, max(cdc$case_month)), 
                        expand = c(0, 0)) +
-      labs(title = glue("Total cases in {.x} over 2020"),
-           x = "Month",
-           y = "Total Cases")
+      labs(title = glue("County with FIPS code: {.x} "),
+           x = "Month in 2020",
+           y = "Total Cases",
+           color = 'Age Group')
   })
   )
 
