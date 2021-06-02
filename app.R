@@ -21,12 +21,9 @@ library(viridis)
 library(rjson)
 library(stringr)
 library(glue)
+library(RSocrata)
 
 
-## Map Data
-url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
-
-counties_json <- rjson::fromJSON(file=url)
 
 g <- list(
     scope = 'usa',
@@ -34,17 +31,10 @@ g <- list(
     showlakes = TRUE,
     lakecolor = toRGB('white')
 )
+# 
+# county_map <- counties %>% 
+#     mutate(county_fips = as.character(county_fips))
 
-county_map <- counties %>% 
-    mutate(county_fips = as.character(county_fips))
-
-county_data <- read.csv("schools_county_csv.csv") %>% 
-    filter(year == 2020) %>% 
-    rename(county_fips = countyfips3) %>% 
-    mutate(county_fips = as.character(county_fips)) %>% 
-    mutate(county_fips = str_pad(county_fips, width = 5, side = "left", pad = "0")) %>% 
-    rename(fips = county_fips) %>% 
-    mutate(across(7:18, ~ .x *100))
 
 # county_data %>%
 #     ggplot(aes(long, lat, group = group, fill = mean_all_change)) +
@@ -109,10 +99,10 @@ server <- function(input, output) {
     variable <- reactive({
         if (input$share_closed == "mean_change") {
             glue('mean_{input$grade}_change')
-            }
+        }
         else {
             glue('share_{input$grade}_{input$share_closed}')
-            }
+        }
     })
     
 data <- reactive({
@@ -138,13 +128,18 @@ data <- reactive({
 # })
 
 output$map <- renderPlot({
-    plot_usmap(regions = "counties", data = data(), values = variable()) +
-    labs(title = ifelse(
-        input$share_closed == "mean_change",
-        glue("Average Year-Over-Year % Change in School Visitors"),
-       glue("Percent of Schools Experiencing A Year-Over-Year Decline of at least {pct()} percent for month"))) +
-    scale_fill_continuous(type = "viridis", limits = c(-100, 100))
-}) %>% 
+    plot_usmap(regions = "counties",
+               data = data(),
+               values = variable()) +
+        labs(title = ifelse(
+            input$share_closed == "mean_change",
+            glue("Average Year-Over-Year % Change in School Visitors"),
+            glue(
+                "Percent of Schools Experiencing A Year-Over-Year Decline of at least {pct()} percent for month"
+            )
+        )) +
+        scale_fill_continuous(type = "viridis", limits = c(-100, 100))
+}) %>%
     bindCache(input$month, input$share_closed, input$grade)
 
 
