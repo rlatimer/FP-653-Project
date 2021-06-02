@@ -81,7 +81,8 @@ cdc_plots <- cdc %>%
            color = 'Age Group')
   })
   )
-
+#example plot
+cdc_plots$plot[[1]]  
 
 fs::dir_create(here::here("plots"))
 county <- str_replace_all(tolower(cdc_plots$fips), " ", "-")
