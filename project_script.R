@@ -10,6 +10,7 @@ library(maps)
 library(glue)
 library(repurrrsive)
 #bring in data
+# might need to make a project to be able to have others readin files for reproducability
 county_sch <- import(here("schools_county_csv2.xlsx")) %>% 
   clean_names() %>%
   as_tibble()
