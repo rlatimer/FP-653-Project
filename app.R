@@ -9,7 +9,7 @@
 # This app relies on 'urbnmapr'. Users may need to install this first by running the following line:
 # devtools::install_github("UrbanInstitute/urbnmapr")
 
-needs(tidyverse, sf, tmaptools, tmap)
+needs(tidyverse, sf, tmaptools, tmap, covidcast)
 library(shiny)
 library(plotly)
 library(scales)
@@ -23,7 +23,9 @@ library(stringr)
 library(glue)
 library(RSocrata)
 
+
 tmap_mode("view")
+
 g <- list(
     scope = 'usa',
     projection = list(type = 'albers usa'),
@@ -35,13 +37,36 @@ unzip("us_county_geom.shp.zip", overwrite=TRUE)
 
 geo_data <- read_sf("us_county_geom.shp")
 
-covid_cases <- read_csv("county_case_counts.csv")
+county_demo <- county_census %>% 
+    janitor::clean_names() %>% 
+    select(fips, popestimate2019)
 
-county_data <- read_csv("app_attendance_data.csv")
+covid_cases <- read_csv("county_case_counts.csv") %>% 
+    mutate(fips = str_pad(fips, width = 5, side = "left", pad = "0")) %>% 
+    rename(month = case_month) %>% 
+    group_by(fips, month) %>% 
+    mutate(all_cases = sum(total_cases)) %>% 
+    ungroup() %>% 
+    left_join(county_demo) %>% 
+    group_by(fips, month) %>% 
+    mutate(capita_covid = round((total_cases/(popestimate2019/100000)), 2)) %>% 
+    select(fips, month, capita_covid)
 
-county_data <- left_join(geo_data, county_data)
 
-# tm_shape(test) +
+county_data <- read_csv("app_attendance_data.csv") %>% 
+    left_join(covid_cases)
+
+
+county_data <- left_join(geo_data, county_data, county_demo, by = "fips")
+
+
+str(county_data)
+
+str(covid_cases)
+county_data <- county_data %>% 
+    left_join(covid_cases)
+
+-# tm_shape(test) +
 #     tm_polygons("number_schools")
 # 
 # ggplot(test) +
@@ -183,9 +208,11 @@ centroids <- reactive({
 
 output$tmap <- renderTmap({
     tm_shape(state_data()) +
-    tm_polygons(variable()) +
+    tm_polygons(variable(), "") +
     tm_shape(centroids()) +
     tm_text("county", size = 0.5)
+    tm_polygons(c("HPI", "economy")) +
+        tm_facets(sync = TRUE, ncol = 2)
 })
 
 
