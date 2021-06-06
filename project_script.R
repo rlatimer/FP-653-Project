@@ -60,7 +60,28 @@ states
 
 cdc <- import(here("county_case_counts.csv")) %>% 
   clean_names() %>%
+  #mutate(month = month.name[cdc$month]) #month numbers to months without function
   as_tibble()
+
+#numbers to month names
+#numbers to month function, generalized?
+monthnum_to_names <- function(column) {
+  #create dataframe with a singlecolumen with numbers 1-12
+  #number <- c(1:12) 
+  found <- rep(NA, length(column))
+  df <- data.frame(found)
+  #check if number is between 1-12
+  df$found <- ifelse(sapply(column, between, arg1 = column,arg2 = 1, arg3 = 12)) 
+ 
+  #if df$found is TRUE
+  if (df$found == "TRUE") {
+    column <-mutate(month_name = month.name[column])
+  } 
+}
+
+monthnum_to_names(cdc$month)
+
+cdc$month
 
 
 
