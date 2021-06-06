@@ -31,6 +31,8 @@ g <- list(
     lakecolor = toRGB('white')
 )
 
+unzip("us_county_geom.shp.zip", overwrite=TRUE)
+
 geo_data <- read_sf("us_county_geom.shp")
 
 covid_cases <- read_csv("county_case_counts.csv")
@@ -39,24 +41,20 @@ county_data <- read_csv("app_attendance_data.csv")
 
 county_data <- left_join(geo_data, county_data)
 
-tm_shape(test) +
-    tm_polygons("number_schools")
-
-ggplot(test) +
-    geom_sf(aes(fill = number_schools, color = number_schools))
-
-centroids <- st_centroid(test)
-
-centroids <- centroids %>% 
-    mutate(county = str_replace_all(county_name, " County", ""))
-
-tm_shape(test) +
-    tm_polygons("number_schools",
-                style = "cont") +
-    tm_shape(centroids) +
-    tm_text("county", size = 0.5) +
-    tm_layout(legend.outside = TRUE)
+# tm_shape(test) +
+#     tm_polygons("number_schools")
 # 
+# ggplot(test) +
+#     geom_sf(aes(fill = number_schools, color = number_schools))
+# 
+# 
+# tm_shape(test) +
+#     tm_polygons("number_schools",
+#                 style = "cont") +
+#     tm_shape(centroids) +
+#     tm_text("county", size = 0.5) +
+#     tm_layout(legend.outside = TRUE)
+# # 
 # county_map <- counties %>% 
 #     mutate(county_fips = as.character(county_fips))
 
@@ -98,7 +96,7 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                                                                               "% of Schools With >50% decline in visitors" = "closed_50",
                                                                               "% of Schools With >75% decline in visitors" = "closed_75",
                                                                               "Mean % Change in School Visitors" = "mean_change")),
-                        textInput("state", label = "State"),
+                        textInput("state", label = "State", value = "OR"),
                         width = 3
                     ),
                     
@@ -144,6 +142,13 @@ state_data <- reactive({
                state_abb == state())
 })
 
+centroids <- reactive({
+    st_centroid(state_data()) %>% 
+        mutate(county = str_replace_all(county_name, " County", "")) %>% 
+        select(county, fips, geometry)
+})
+
+
     # output$map <- renderPlot({
     #     data() %>%
     #         ggplot(aes(long, lat, group = group, fill = mean_all)) +
@@ -161,25 +166,25 @@ state_data <- reactive({
 #     theme(panel.background = element_rect(color = "black", fill = "lightblue"))
 # })
 
-output$map <- renderPlot({
-    plot_usmap(regions = "counties",
-               data = data(),
-               values = variable()) +
-        labs(title = ifelse(
-            input$share_closed == "mean_change",
-            glue("Average Year-Over-Year % Change in School Visitors"),
-            glue(
-                "Percent of Schools Experiencing A Year-Over-Year Decline of at least {pct()} percent for month"
-            )
-        )) +
-        scale_fill_continuous(type = "viridis", limits = c(-100, 100))
-}) %>%
-    bindCache(input$month, input$share_closed, input$grade)
+# output$map <- renderPlot({
+#     plot_usmap(regions = "counties",
+#                data = data(),
+#                values = variable()) +
+#         labs(title = ifelse(
+#             input$share_closed == "mean_change",
+#             glue("Average Year-Over-Year % Change in School Visitors"),
+#             glue(
+#                 "Percent of Schools Experiencing A Year-Over-Year Decline of at least {pct()} percent for month"
+#             )
+#         )) +
+#         scale_fill_continuous(type = "viridis", limits = c(-100, 100))
+# }) %>%
+#     bindCache(input$month, input$share_closed, input$grade)
 
 output$tmap <- renderTmap({
     tm_shape(state_data()) +
     tm_polygons(variable()) +
-    tm_shape(centroids) +
+    tm_shape(centroids()) +
     tm_text("county", size = 0.5)
 })
 
