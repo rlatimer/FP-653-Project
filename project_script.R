@@ -116,13 +116,21 @@ walk2(path, cdc_plots$plot, ggsave,
       dpi = 500)
 
 #table of CDC data
+cmap2020_2 <- cmap2020 %>% 
+  mutate(fips = as.integer(fips))
 
-cdc_table <- cdc %>% 
+cdc_table_data<-left_join(cdc,cmap2020_2) %>% 
+  select(1, 8, 25, 26, 3, 4)
+
+cdc_table <- cdc_table_data %>% 
   reactable(
   searchable = TRUE,
   filterable = TRUE,
   columns = list(
     case_month = colDef(name="Month"),
+    year = colDef(name="Year"),
+    county_name = colDef(name="County"),
+    state_abb = colDef(name="State"),
     age_group = colDef(name="Age group"),
     total_cases = colDef(name="Total COVID-19 cases")),
   defaultPageSize = 11
