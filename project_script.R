@@ -116,7 +116,6 @@ walk2(path, cdc_plots$plot, ggsave,
       dpi = 500)
 
 #table of CDC data
-reactable(cdc)
 
 cdc_table <- cdc %>% 
   reactable(
