@@ -63,9 +63,26 @@ sd(cmap2020$share_all_closed_50, na.rm = T)
 
 
 #function2, convert month numbers into indicative string 
-numbers_to_months <- function(data, col) {
-  data[,col] <- #Specify numbers 1-12 and replace with approrpiate month name  
+
+#numbers to month names, not done yet
+#numbers to month function, generalized?
+monthnum_to_names <- function(column) {
+  #create dataframe with a singlecolumen with numbers 1-12
+  #number <- c(1:12) 
+  found <- rep(NA, length(column))
+  df <- data.frame(found)
+  #check if number is between 1-12
+  df$found <- ifelse(sapply(column, dplyr::between, x = column, left = 1, right = 12))
+ 
+  #if df$found is TRUE
+  if (df$found == "TRUE") {
+    column <-mutate(month_name = month.name[column])
+  } 
 }
+
+monthnum_to_names(cdc$month)
+
+cdc$month
 
 ```
 
@@ -109,6 +126,57 @@ states
 ```
 
 ```{r}
-#shiny app to toggle between months of the 2020 year
+#shiny app stuff (move over later) to toggle between tables and months??
+#table for attendance data, with reactable? meant for shiny app will move it to the app once I know whats going on
+
+library(shiny)
+library(reactable)
+
+table_attendance <- cmap2020 %>% 
+  filter(state_abb == "OR") %>% 
+  select(county_name, fips, total_students, number_schools, share_all_closed_50) %>% 
+  rename("Ratio of Schools with at least 50% vistor decline from 2019" = share_all_closed_50)
+
+
+ui <- fluidPage(
+  reactableOutput("table")
+)
+
+server <- function(input, output) {
+  output$table <- renderReactable({
+    reactable(table_attendance)
+  })
+}
+
+shinyApp(ui, server)
+
+#the other one with maps, trying to show counties on map with share_all_closed
+library(crosstalk)
+library(leaflet)
+library(dplyr)
+
+# A SpatialPointsDataFrame for the map.
+# Set a group name to share data points with the table.
+brew_sp <- SharedData$new(, group = "breweries")
+
+# A regular data frame (without coordinates) for the table.
+# Use the same group name as the map data.
+brew_data <- as_tibble(breweries91) %>%
+  select(brewery, address, village, founded) %>%
+  SharedData$new(group = "breweries")
+
+map <- leaflet(brew_sp) %>%
+  addTiles() %>%
+  addMarkers()
+
+tbl <- reactable(
+  brew_data,
+  selection = "multiple",
+  onClick = "select",
+  rowStyle = list(cursor = "pointer"),
+  minRows = 10
+)
+
+htmltools::tagList(map, tbl)
 
 ```

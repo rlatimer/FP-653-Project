@@ -53,4 +53,19 @@ map_url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-cou
 
 counties_json <- rjson::fromJSON(file = url) %>% 
   unnest()
+
+
+wst_cst <- tigris::counties(state = c("California", "Oregon", "Washington")) %>% 
+  janitor::clean_names()
+
+us_map <- tigris::counties() %>% 
+  janitor::clean_names()
+
+us_map <- us_map %>% 
+  janitor::clean_names() %>% 
+  select(geoid, geometry) %>% 
+  rename(fips = geoid)
+
+write_sf(us_map, "us_county_geom.shp")
+
   
