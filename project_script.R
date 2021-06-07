@@ -8,6 +8,7 @@ library(rio)
 library(usmap)
 library(maps)
 library(glue)
+library(reactable)
 library(repurrrsive)
 #bring in data
 county_sch <- import(here("schools_county_csv2.xlsx")) %>% 
@@ -92,3 +93,19 @@ walk2(path, cdc_plots$plot, ggsave,
       width = 9.5, 
       height = 6.5,
       dpi = 500)
+
+#table of CDC data
+reactable(cdc)
+
+cdc_table <- cdc %>% 
+  reactable(
+  searchable = TRUE,
+  filterable = TRUE,
+  columns = list(
+    case_month = colDef(name="Month"),
+    age_group = colDef(name="Age group"),
+    total_cases = colDef(name="Total COVID-19 cases")),
+  defaultPageSize = 11
+  )
+
+cdc_table
