@@ -66,23 +66,27 @@ sd(cmap2020$share_all_closed_50, na.rm = T)
 
 #numbers to month names, not done yet
 #numbers to month function, generalized?
-monthnum_to_names <- function(column) {
-  #create dataframe with a singlecolumen with numbers 1-12
-  #number <- c(1:12) 
-  found <- rep(NA, length(column))
-  df <- data.frame(found)
-  #check if number is between 1-12
-  df$found <- ifelse(sapply(column, dplyr::between, x = column, left = 1, right = 12))
- 
-  #if df$found is TRUE
-  if (df$found == "TRUE") {
-    column <-mutate(month_name = month.name[column])
+monthnum_to_names <- function(data, column) {
+
+  check <- with(data, month >= 1 & month <= 12)
+  if (unique(check) == "False") {
+    return(NA) }
+  else {
+    return(month.name[column])
   } 
 }
 
-monthnum_to_names(cdc$month)
+#function content check
+#check <- with(county_sch, month >= 1 & month <= 12)
+# unique(check) == "FALSE"
 
-cdc$month
+#checking output  
+output <- monthnum_to_names(county_sch, county_sch$month)
+typeof(output)
+
+#saving output to original data
+county_sch <- mutate(county_sch, month_name = monthnum_to_names(county_sch, county_sch$month))
+
 
 ```
 
