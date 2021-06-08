@@ -9,7 +9,7 @@
 # This app relies on 'urbnmapr'. Users may need to install this first by running the following line:
 # devtools::install_github("UrbanInstitute/urbnmapr")
 
-needs(tidyverse, sf, tmaptools, tmap)
+needs(tidyverse, sf, tmaptools, tmap, covidcast)
 library(shiny)
 library(plotly)
 library(scales)
@@ -23,7 +23,9 @@ library(stringr)
 library(glue)
 library(RSocrata)
 
+
 tmap_mode("view")
+
 g <- list(
     scope = 'usa',
     projection = list(type = 'albers usa'),
@@ -31,32 +33,53 @@ g <- list(
     lakecolor = toRGB('white')
 )
 
+unzip("us_county_geom.shp.zip", overwrite=TRUE)
+
 geo_data <- read_sf("us_county_geom.shp")
 
-covid_cases <- read_csv("county_case_counts.csv")
+county_demo <- county_census %>% 
+    janitor::clean_names() %>% 
+    select(fips, popestimate2019)
 
-county_data <- read_csv("app_attendance_data.csv")
+covid_cases <- read_csv("county_case_counts.csv") %>% 
+    mutate(fips = str_pad(fips, width = 5, side = "left", pad = "0")) %>% 
+    rename(month = case_month) %>% 
+    group_by(fips, month) %>% 
+    mutate(all_cases = sum(total_cases)) %>% 
+    ungroup() %>% 
+    left_join(county_demo) %>% 
+    group_by(fips, month) %>% 
+    mutate(capita_covid = round((total_cases/(popestimate2019/100000)), 2)) %>% 
+    select(fips, month, capita_covid)
 
-county_data <- left_join(geo_data, county_data)
 
-tm_shape(test) +
-    tm_polygons("number_schools")
+county_data <- read_csv("app_attendance_data.csv") %>% 
+    left_join(covid_cases)
 
-ggplot(test) +
-    geom_sf(aes(fill = number_schools, color = number_schools))
 
-centroids <- st_centroid(test)
+county_data <- left_join(geo_data, county_data, county_demo, by = "fips")
 
-centroids <- centroids %>% 
-    mutate(county = str_replace_all(county_name, " County", ""))
 
-tm_shape(test) +
-    tm_polygons("number_schools",
-                style = "cont") +
-    tm_shape(centroids) +
-    tm_text("county", size = 0.5) +
-    tm_layout(legend.outside = TRUE)
+str(county_data)
+
+str(covid_cases)
+county_data <- county_data %>% 
+    left_join(covid_cases)
+
+-# tm_shape(test) +
+#     tm_polygons("number_schools")
 # 
+# ggplot(test) +
+#     geom_sf(aes(fill = number_schools, color = number_schools))
+# 
+# 
+# tm_shape(test) +
+#     tm_polygons("number_schools",
+#                 style = "cont") +
+#     tm_shape(centroids) +
+#     tm_text("county", size = 0.5) +
+#     tm_layout(legend.outside = TRUE)
+# # 
 # county_map <- counties %>% 
 #     mutate(county_fips = as.character(county_fips))
 
@@ -98,7 +121,7 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                                                                               "% of Schools With >50% decline in visitors" = "closed_50",
                                                                               "% of Schools With >75% decline in visitors" = "closed_75",
                                                                               "Mean % Change in School Visitors" = "mean_change")),
-                        textInput("state", label = "State"),
+                        textInput("state", label = "State", value = "OR"),
                         width = 3
                     ),
                     
@@ -144,6 +167,13 @@ state_data <- reactive({
                state_abb == state())
 })
 
+centroids <- reactive({
+    st_centroid(state_data()) %>% 
+        mutate(county = str_replace_all(county_name, " County", "")) %>% 
+        select(county, fips, geometry)
+})
+
+
     # output$map <- renderPlot({
     #     data() %>%
     #         ggplot(aes(long, lat, group = group, fill = mean_all)) +
@@ -161,26 +191,28 @@ state_data <- reactive({
 #     theme(panel.background = element_rect(color = "black", fill = "lightblue"))
 # })
 
-output$map <- renderPlot({
-    plot_usmap(regions = "counties",
-               data = data(),
-               values = variable()) +
-        labs(title = ifelse(
-            input$share_closed == "mean_change",
-            glue("Average Year-Over-Year % Change in School Visitors"),
-            glue(
-                "Percent of Schools Experiencing A Year-Over-Year Decline of at least {pct()} percent for month"
-            )
-        )) +
-        scale_fill_continuous(type = "viridis", limits = c(-100, 100))
-}) %>%
-    bindCache(input$month, input$share_closed, input$grade)
+# output$map <- renderPlot({
+#     plot_usmap(regions = "counties",
+#                data = data(),
+#                values = variable()) +
+#         labs(title = ifelse(
+#             input$share_closed == "mean_change",
+#             glue("Average Year-Over-Year % Change in School Visitors"),
+#             glue(
+#                 "Percent of Schools Experiencing A Year-Over-Year Decline of at least {pct()} percent for month"
+#             )
+#         )) +
+#         scale_fill_continuous(type = "viridis", limits = c(-100, 100))
+# }) %>%
+#     bindCache(input$month, input$share_closed, input$grade)
 
 output$tmap <- renderTmap({
     tm_shape(state_data()) +
-    tm_polygons(variable()) +
-    tm_shape(centroids) +
+    tm_polygons(variable(), "") +
+    tm_shape(centroids()) +
     tm_text("county", size = 0.5)
+    tm_polygons(c("HPI", "economy")) +
+        tm_facets(sync = TRUE, ncol = 2)
 })
 
 
