@@ -19,46 +19,107 @@ library(usmap)
 library(maps)
 library(glue)
 library(sp)
+library(shiny)
+library(reactable)
+library(formattable)
+#library(bslib)
+library(shinythemes)
 
 ```
 
 
 ```{r}
-#bring in data
-
-county_sch <- import(here("schools_county_csv2.xlsx")) %>% 
-  clean_names() %>%
-  as_tibble()
-
-#need the variable 'fips' for mapping
-cmap <- rename(county_sch, "fips" = "countyfips4")
-
-#only keep 2020 data
-cmap2020 <- 
-  cmap %>% 
+#Chris merges this later on so will delete once I can get his portion organized
+  #bring in data
+  
+  county_sch <- import(here("schools_county_csv2.xlsx")) %>% 
+    clean_names() %>%
+    as_tibble()
+  
+  #need the variable 'fips' for mapping
+  cmap <- rename(county_sch, "fips" = "countyfips4")
+  
+  #only keep 2020 data
+  cmap2020 <- 
+    cmap %>% 
     filter(year == 2020) %>% 
-      group_by(month)
-
-#future notes, potentially merge other datasets usings fips and joins
-
-#we may not need these next two data sets
-#district_sch <- import(here("schools_district_csv.csv")) %>% 
-#  clean_names() %>%
-#  as_tibble()
-
-#state_sch <- import(here("schools_state_csv.csv")) %>% 
-#  clean_names() %>%
-#  as_tibble()
-
-#check min max of share_all_closed_50 for scaling reasons
-min(cmap2020$share_all_closed_50, na.rm = T)
-max(cmap2020$share_all_closed_50, na.rm = T)
-mean(cmap2020$share_all_closed_50, na.rm = T)
-sd(cmap2020$share_all_closed_50, na.rm = T)
+    group_by(month)
+  
+  
+  #check min max of share_all_closed_50 for scaling reasons
+  min(cmap2020$share_all_closed_50, na.rm = T)
+  max(cmap2020$share_all_closed_50, na.rm = T)
+  mean(cmap2020$share_all_closed_50, na.rm = T)
+  sd(cmap2020$share_all_closed_50, na.rm = T)
+  
 
 
 ```
 
+
+```{r}
+#Consolidated dataframe to use as base
+#Count Cases by County and Age Group
+# Import COVID Case data for 2020 in West Coast States(CA, OR, WA)
+covid_data <- import("west_coast_covid_data.csv") 
+  
+
+# Cleaning covid_data
+county_covid <- covid_data %>%
+  drop_na(county_fips_code) %>% 
+  group_by(case_month, county_fips_code, age_group) %>% 
+  nest() %>% 
+  mutate(total_cases = map_dbl(data, ~nrow(.x)),
+         age_group = ifelse(is.na(age_group), "Unknown", age_group),
+         case_month = as.numeric(
+           substr(case_month, 6, 7))) %>% 
+  select(-data) %>% 
+  arrange(county_fips_code, case_month)
+
+#rename case_month values to names, equivelent to cdc dataframe in project.script, with minor diff between colom names for months and fips,will edit once I have county_demo
+county_covid <- county_covid %>% 
+  ungroup() %>%
+  mutate(case_month_names = monthnum_to_names(county_covid, county_covid$case_month)) %>% 
+  group_by(case_month, county_fips_code, age_group)
+
+## Importing population data for per capita estimates, cant find county_census
+county_demo <- county_census %>% 
+  janitor::clean_names() %>% 
+  select(fips, popestimate2019)
+
+
+## Joining population data with covid case data and calculating additional variables
+covid_cases <- county_covid %>% 
+  rename(fips = county_fips_code,
+         month = case_month) %>% ##moving his earlier in the pipe
+  mutate(fips = str_pad(fips, width = 5, side = "left", pad = "0")) %>% 
+  group_by(fips, month) %>% 
+  mutate(all_cases = sum(total_cases)) %>% 
+  ungroup() %>% 
+  left_join(county_demo) %>% 
+  distinct(month, fips, all_cases, popestimate2019) %>% 
+  group_by(fips, month) %>% 
+  mutate(capita_covid = round((all_cases/(popestimate2019/100000)), 2),
+         per_pop = round((1/(all_cases/popestimate2019)), 0),
+         share_pop = paste("1 in", per_pop, sep = " ")) %>% 
+  select(fips, month, capita_covid, all_cases, per_pop, share_pop)
+
+export(covid_cases, "county_case_counts.csv")
+
+## Process Attendance Data
+county_data <- read.csv("schools_county_csv.csv") %>% 
+  filter(year == 2020) %>% 
+  rename(fips = countyfips3) %>% 
+  mutate(fips = as.character(fips),
+         fips = str_pad(fips, width = 5, side = "left", pad = "0"),
+         across(7:18, ~ .x *100))
+
+export(county_data, "app_attendance_data.csv")
+
+#import 
+
+
+```
 ```{r}
 #functions for later
 #function1, save plots to a folder 
@@ -67,10 +128,10 @@ sd(cmap2020$share_all_closed_50, na.rm = T)
 #function2, convert month numbers into indicative string 
 
 #numbers to month names, not done yet
-#numbers to month function, generalized? doesnt work on grouped data 
+#numbers to month function, generalized(not really, works for columns consisitng of numeric 1-12) doesnt work on grouped data, feed to mutate  
 monthnum_to_names <- function(data, column) {
 
-  check <- with(data, month >= 1 & month <= 12)
+  check <- with(data, column >= 1 & column <= 12)
   if (unique(check) == "False") {
     return(NA) }
   else {
@@ -78,16 +139,6 @@ monthnum_to_names <- function(data, column) {
   } 
 }
 monthnum_to_names(table_attendance, table_attendance$month)
-#function content check
-#check <- with(county_sch, month >= 1 & month <= 12)
-# unique(check) == "FALSE"
-
-#checking output  
-output <- monthnum_to_names(county_sch, county_sch$month)
-typeof(output)
-
-#saving output to original data
-county_sch <- mutate(county_sch, month_name = monthnum_to_names(county_sch, county_sch$month))
 
 
 ```
@@ -132,29 +183,27 @@ states
 ```
 
 ```{r}
-#shiny app stuff (move over later) to toggle between tables and months??
 #table for attendance data, with reactable? meant for shiny app will move it to the app once I know whats going on
-
-library(shiny)
-library(reactable)
-library(formattable)
 
 table_attendance <- cmap2020 %>% 
   ungroup() %>%
-  mutate(month = monthnum_to_names(cmap2020, cmap2020$month)) %>% 
-  filter(state_abb == "OR") %>% 
-  select(month, county_name, total_students, number_schools, share_all_closed_50, fips) %>% 
-  rename("Ratio of Schools with at least 50% vistor decline from 2019" = share_all_closed_50,
+  mutate(month = monthnum_to_names(cmap2020, cmap2020$month)) %>% #also remove later since ill do this when organizing data
+  filter(state_abb == "OR") %>% #remove this once consolidated dataframe is done
+  select(month, county_name, total_students, number_schools, share_all_closed_25, share_all_closed_50, share_all_closed_75, mean_all_change, fips) %>% #watch out for what fips is called later on
+  rename("Ratio of Schools with at least 25% vistor decline from 2019" = share_all_closed_25,
+         "Ratio of Schools with at least 50% vistor decline from 2019" = share_all_closed_50,
+         "Ratio of Schools with at least 75% vistor decline from 2019" = share_all_closed_75,
+         "Mean change ratio of in person visits from 2019 (+:Decline from 2019,-:Increase from 2019)" = mean_all_change,
          "Month" = month,
          "County Name" = county_name,
          "Total Students" = total_students,
          "Number of Schools" = number_schools)
-  
-  
+
+
 
 
 ui <- fluidPage(
-  reactableOutput("table"), theme = "bootstrap.css"
+  reactableOutput("table"), theme = shinytheme("cyborg")
 )
 
 server <- function(input, output) {
@@ -162,63 +211,15 @@ server <- function(input, output) {
     reactable(table_attendance,
               filterable = TRUE,
               defaultPageSize = 25,
-              )
-                
-              })
+    )
+    
+  })
 }
 
 shinyApp(ui, server)
 
 
-#probably not gonna use, cant figure out mapping and how to make a spatialpointdataframe
-#join county geodata with dataframe 
-county_geo <- import("us-county-boundaries.csv") %>%  
-  separate(`Geo Point`, into = c("x", "y"), sep = ",") %>% 
-   rename("fips" = "GEOID") %>%   
-    select(NAME,STATE_NAME, fips, x, y)  
-#change data type for join
-county_geo$fips <- as.character(county_geo$fips)
-county_geo$x <- as.numeric(county_geo$x)
-county_geo$y <- as.numeric(county_geo$y)
-  
-#join data, some countie coordinate data missing 
-county_geo_2020 <- left_join(cmap2020,county_geo) %>%  filter(STATE_NAME == "Oregon")
 
-sp_county_geo <- SpatialPoints(county_geo_2020[,26:27], county_geo_2020)
-
-
-#the other one with maps, trying to show counties on map with share_all_closed
-library(crosstalk)
-library(leaflet)
-library(dplyr)
-
-# A SpatialPointsDataFrame for the map.
-# Set a group name to share data points with the table.
-share_all_closed_sp <- SharedData$new(county_geo_2020, group = "NAME")
-
-#brew_sp <- SharedData$new(p, group = "breweries")
-
-# A regular data frame (without coordinates) for the table.
-# Use the same group name as the map data.
-# use non map dataframe for this
-share_all_closed_data <- as_tibble(county_geo_2020) %>%
-  select(NAME, fips, month, number_schools, total_students, share_all_closed_50) %>% 
-  SharedData$new(group = "NAME")
-
-map <- leaflet(share_all_closed_sp) %>%
-  addTiles() %>%
-  addMarkers(lng = ~x, lat = ~y)
-
-tbl <- reactable(
-  share_all_closed_sp,
-  selection = "multiple",
-  onClick = "select",
-  filterable = TRUE,
-  rowStyle = list(cursor = "pointer"),
-  minRows = 10
-)
-
-htmltools::tagList(map, tbl)
 
 
 ```
