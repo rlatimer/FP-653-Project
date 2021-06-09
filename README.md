@@ -1,3 +1,3 @@
 # FP-653-Project
 
-## Authors: Chris Ives, Rachael Latimer, Tess Sameshime
+## Authors: Chris Ives, Rachael Latimer, Tess Sameshima
