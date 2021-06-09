@@ -207,38 +207,6 @@ write_sf(wst_cst, "wst_cst.shp")
 ```
 
 
-
-```{r}
-#dont need this, will delete soon
-#plotting maps
-
-# us map with counties
-p <- plot_usmap(regions = "counties", data = cmap2020, values = "share_all_closed_50") + 
-  labs(title = "title",
-       subtitle = "subtitle here") + 
-  theme(panel.background = element_rect(color = "black", fill = "lightblue"))
-p
-#us map with counties per month
-p<-plot_usmap(regions = "counties", data = cmap2020, values = "share_all_closed_50") + 
-  scale_fill_continuous(name = "2019 over 2020 change ratio in visits", na.value = "white") +
-  facet_wrap(~month) +
-  labs(title = glue("Schools experiencing a year-over-year decline of at least 50 percent for month:{cmap2020$month}"), #need to figure out how to glue properly
-       subtitle = "subtitle here") + 
-  theme(legend.position = "right")
-p
-
-#adding state boundaries
-states <- plot_usmap(
-  "states", 
-  color = "black",
-  fill = alpha(0.01)
-) 
-
-states
-
-
-```
-
 ```{r}
 #Racheals cdc plots
 cdc_plots <- county_covid %>% #need to reference county_covid, watch out for some column names for the time being 
