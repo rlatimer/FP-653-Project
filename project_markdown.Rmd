@@ -24,6 +24,8 @@ library(reactable)
 library(formattable)
 #library(bslib)
 library(shinythemes)
+library(RSocrata)
+library(covidcast)
 
 ```
 
@@ -56,6 +58,26 @@ library(shinythemes)
 
 ```
 
+```{r}
+#functions for later
+#function1, save plots to a folder 
+
+
+#function2, convert month numbers into indicative string 
+
+#numbers to month function, generalized(not really, works for columns consisitng of numeric 1-12) doesnt work on grouped data, feed to mutate  
+monthnum_to_names <- function(data, column) {
+
+  check <- with(data, column >= 1 & column <= 12)
+  if (unique(check) == "False") {
+    return(NA) }
+  else {
+    return(month.name[column])
+  } 
+}
+
+```
+
 
 ```{r}
 #Consolidated dataframe to use as base
@@ -76,11 +98,6 @@ county_covid <- covid_data %>%
   select(-data) %>% 
   arrange(county_fips_code, case_month)
 
-#rename case_month values to names, equivelent to cdc dataframe in project.script, with minor diff between colom names for months and fips,will edit once I have county_demo
-county_covid <- county_covid %>% 
-  ungroup() %>%
-  mutate(case_month_names = monthnum_to_names(county_covid, county_covid$case_month)) %>% 
-  group_by(case_month, county_fips_code, age_group)
 
 ## Importing population data for per capita estimates, cant find county_census
 county_demo <- county_census %>% 
@@ -96,13 +113,15 @@ covid_cases <- county_covid %>%
   group_by(fips, month) %>% 
   mutate(all_cases = sum(total_cases)) %>% 
   ungroup() %>% 
+  mutate(month_names = monthnum_to_names(county_covid, county_covid$case_month)) %>% 
   left_join(county_demo) %>% 
-  distinct(month, fips, all_cases, popestimate2019) %>% 
+  distinct(month, month_names, fips, all_cases, popestimate2019) %>% 
   group_by(fips, month) %>% 
   mutate(capita_covid = round((all_cases/(popestimate2019/100000)), 2),
          per_pop = round((1/(all_cases/popestimate2019)), 0),
-         share_pop = paste("1 in", per_pop, sep = " ")) %>% 
-  select(fips, month, capita_covid, all_cases, per_pop, share_pop)
+         share_pop = paste("1 in", per_pop, sep = " "),
+         fips = as.integer(fips)) %>% #changed fips type here to integer for later use
+  select(fips, month, month_names,capita_covid, all_cases, per_pop, share_pop)
 
 export(covid_cases, "county_case_counts.csv")
 
@@ -112,39 +131,49 @@ county_data <- read.csv("schools_county_csv.csv") %>%
   rename(fips = countyfips3) %>% 
   mutate(fips = as.character(fips),
          fips = str_pad(fips, width = 5, side = "left", pad = "0"),
-         across(7:18, ~ .x *100))
+         across(7:18, ~ .x *100),
+         month_names = monthnum_to_names(., .$month))
 
 export(county_data, "app_attendance_data.csv")
 
-#import 
-
-
-```
-```{r}
-#functions for later
-#function1, save plots to a folder 
-
-
-#function2, convert month numbers into indicative string 
-
-#numbers to month names, not done yet
-#numbers to month function, generalized(not really, works for columns consisitng of numeric 1-12) doesnt work on grouped data, feed to mutate  
-monthnum_to_names <- function(data, column) {
-
-  check <- with(data, column >= 1 & column <= 12)
-  if (unique(check) == "False") {
-    return(NA) }
-  else {
-    return(month.name[column])
-  } 
-}
-monthnum_to_names(table_attendance, table_attendance$month)
 
 
 ```
 
+```{r}
+#Chris' mapping stuff
+## Import Map Data
+map_url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
+
+counties_json <- rjson::fromJSON(file = url) %>% 
+  unnest()
+
+
+wst_cst <- tigris::counties(state = c("California", "Oregon", "Washington")) %>% 
+  janitor::clean_names() %>% 
+  select(geoid, geometry) %>% 
+  rename(fips = geoid)
+
+us_map <- tigris::counties() %>% 
+  janitor::clean_names()
+
+us_map <- us_map %>% 
+  janitor::clean_names() %>% 
+  select(geoid, geometry) %>% 
+  rename(fips = geoid)
+
+write_sf(us_map, "us_county_geom.shp")
+write_sf(wst_cst, "wst_cst.shp")
+
+
+
+```
+
+
+
 
 ```{r}
+#dont need this, will delete soon
 #plotting maps
 
 # us map with counties
@@ -172,9 +201,70 @@ states <- plot_usmap(
 states
 
 
-
-#function to output new map for each month? we can do this with facet_wrap
 ```
+
+```{r}
+#Racheals cdc plots
+cdc_plots <- county_covid %>% #need to reference county_covid, watch out for some column names for the time being 
+  group_by( fips) %>% 
+  nest() %>% 
+  mutate(plot = pmap(list(fips, data), ~{
+    ggplot(..2, aes(x=case_month,
+                    y=total_cases,
+                    color = age_group)) +
+      geom_point() +
+      geom_line(alpha = 0.7, size = 1) +
+      scale_x_discrete(limits = c(0, max(cdc$case_month)), 
+                       expand = c(0, 0)) +
+      labs(title = glue("County with FIPS code: {.x} "),
+           x = "Month in 2020",
+           y = "Total Cases",
+           color = 'Age Group')
+  })
+  )
+#example plot
+cdc_plots$plot[[1]]  
+
+fs::dir_create(here::here("plots"))
+county <- str_replace_all(tolower(cdc_plots$fips), " ", "-")
+path <- here::here("plots", glue("{county}.png"))
+
+walk2(path, cdc_plots$plot, ggsave,
+      width = 9.5, 
+      height = 6.5,
+      dpi = 500)
+
+
+```
+
+
+```{r}
+#table of CDC data
+cmap2020_2 <- county_data %>% 
+  mutate(fips = as.integer(fips))
+
+cdc_table_data<-left_join(covid_cases,cmap2020_2) %>% #using covid_cases for cdc 
+  select(1, 8, 25, 26, 3, 4)
+
+cdc_table <- cdc_table_data %>% 
+  reactable(
+  searchable = TRUE,
+  filterable = TRUE,
+  columns = list(
+    case_month = colDef(name="Month"),
+    year = colDef(name="Year"),
+    county_name = colDef(name="County"),
+    state_abb = colDef(name="State"),
+    age_group = colDef(name="Age group"),
+    total_cases = colDef(name="Total COVID-19 cases")),
+  defaultPageSize = 11
+  )
+
+cdc_table
+
+```
+
+
 
 ```{r}
 #saving plots to file
@@ -185,7 +275,7 @@ states
 ```{r}
 #table for attendance data, with reactable? meant for shiny app will move it to the app once I know whats going on
 
-table_attendance <- cmap2020 %>% 
+table_attendance <- cmap2020 %>% #change data to master dataframe
   ungroup() %>%
   mutate(month = monthnum_to_names(cmap2020, cmap2020$month)) %>% #also remove later since ill do this when organizing data
   filter(state_abb == "OR") %>% #remove this once consolidated dataframe is done
@@ -201,7 +291,7 @@ table_attendance <- cmap2020 %>%
 
 
 
-
+#shiny app stuff for table
 ui <- fluidPage(
   reactableOutput("table"), theme = shinytheme("cyborg")
 )
@@ -217,6 +307,8 @@ server <- function(input, output) {
 }
 
 shinyApp(ui, server)
+
+ggplot()
 
 
 
