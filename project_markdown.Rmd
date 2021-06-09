@@ -29,6 +29,29 @@ library(covidcast)
 
 ```
 
+```{r}
+#functions for later
+#function1, save plots to a folder 
+
+
+#function2, convert month numbers into indicative string 
+
+#numbers to month names, not done yet
+#numbers to month function, generalized(not really, works for columns consisitng of numeric 1-12) doesnt work on grouped data, feed to mutate  
+monthnum_to_names <- function(data, column) {
+
+  check <- with(data, column >= 1 & column <= 12)
+  if (unique(check) == "False") {
+    return(NA) }
+  else {
+    return(month.name[column])
+  } 
+}
+monthnum_to_names(table_attendance, table_attendance$month)
+
+
+```
+
 
 ```{r}
 #Chris merges this later on so will delete once I can get his portion organized
@@ -99,8 +122,8 @@ county_covid <- covid_data %>%
   arrange(county_fips_code, case_month)
 
 
-## Importing population data for per capita estimates, cant find county_census
-county_demo <- county_census %>% 
+## Importing population data for per capita estimates
+county_demo <- covidcast::county_census %>% 
   janitor::clean_names() %>% 
   select(fips, popestimate2019)
 
@@ -136,32 +159,57 @@ county_data <- read.csv("schools_county_csv.csv") %>%
 
 export(county_data, "app_attendance_data.csv")
 
-
-
-```
-
-```{r}
-#Chris' mapping stuff
-## Import Map Data
-map_url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
-
-counties_json <- rjson::fromJSON(file = url) %>% 
-  unnest()
-
-
+# Import Mapping data
 wst_cst <- tigris::counties(state = c("California", "Oregon", "Washington")) %>% 
   janitor::clean_names() %>% 
   select(geoid, geometry) %>% 
   rename(fips = geoid)
 
+write_sf(wst_cst, "wst_cst.shp")
+
+```
+
+```{r}
+<<<<<<<
+#Chris' mapping stuff
+## Import Map Data
+map_url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
+=======
+#Join different data sources
+covid_data <- county_data %>% 
+    left_join(covid_cases, by = c("fips", "month"))
+>>>>>>>
+
+<<<<<<<
+counties_json <- rjson::fromJSON(file = url) %>% 
+  unnest()
+=======
+export(covid_data, "app_data.csv")
+>>>>>>>
+
+
+<<<<<<<
+wst_cst <- tigris::counties(state = c("California", "Oregon", "Washington")) %>% 
+  janitor::clean_names() %>% 
+  select(geoid, geometry) %>% 
+  rename(fips = geoid)
+=======
+```
+>>>>>>>
+
+<<<<<<<
 us_map <- tigris::counties() %>% 
   janitor::clean_names()
+=======
+
+>>>>>>>
 
 us_map <- us_map %>% 
   janitor::clean_names() %>% 
   select(geoid, geometry) %>% 
   rename(fips = geoid)
 
+<<<<<<<
 write_sf(us_map, "us_county_geom.shp")
 write_sf(wst_cst, "wst_cst.shp")
 
@@ -172,6 +220,9 @@ write_sf(wst_cst, "wst_cst.shp")
 
 
 
+=======
+
+>>>>>>>
 ```{r}
 #dont need this, will delete soon
 #plotting maps
