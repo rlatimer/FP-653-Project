@@ -27,6 +27,29 @@ library(shinythemes)
 
 ```
 
+```{r}
+#functions for later
+#function1, save plots to a folder 
+
+
+#function2, convert month numbers into indicative string 
+
+#numbers to month names, not done yet
+#numbers to month function, generalized(not really, works for columns consisitng of numeric 1-12) doesnt work on grouped data, feed to mutate  
+monthnum_to_names <- function(data, column) {
+
+  check <- with(data, column >= 1 & column <= 12)
+  if (unique(check) == "False") {
+    return(NA) }
+  else {
+    return(month.name[column])
+  } 
+}
+monthnum_to_names(table_attendance, table_attendance$month)
+
+
+```
+
 
 ```{r}
 #Chris merges this later on so will delete once I can get his portion organized
@@ -82,8 +105,8 @@ county_covid <- county_covid %>%
   mutate(case_month_names = monthnum_to_names(county_covid, county_covid$case_month)) %>% 
   group_by(case_month, county_fips_code, age_group)
 
-## Importing population data for per capita estimates, cant find county_census
-county_demo <- county_census %>% 
+## Importing population data for per capita estimates
+county_demo <- covidcast::county_census %>% 
   janitor::clean_names() %>% 
   select(fips, popestimate2019)
 
@@ -116,32 +139,26 @@ county_data <- read.csv("schools_county_csv.csv") %>%
 
 export(county_data, "app_attendance_data.csv")
 
-#import 
+# Import Mapping data
+wst_cst <- tigris::counties(state = c("California", "Oregon", "Washington")) %>% 
+  janitor::clean_names() %>% 
+  select(geoid, geometry) %>% 
+  rename(fips = geoid)
 
+write_sf(wst_cst, "wst_cst.shp")
 
 ```
+
 ```{r}
-#functions for later
-#function1, save plots to a folder 
+#Join different data sources
+covid_data <- county_data %>% 
+    left_join(covid_cases, by = c("fips", "month"))
 
-
-#function2, convert month numbers into indicative string 
-
-#numbers to month names, not done yet
-#numbers to month function, generalized(not really, works for columns consisitng of numeric 1-12) doesnt work on grouped data, feed to mutate  
-monthnum_to_names <- function(data, column) {
-
-  check <- with(data, column >= 1 & column <= 12)
-  if (unique(check) == "False") {
-    return(NA) }
-  else {
-    return(month.name[column])
-  } 
-}
-monthnum_to_names(table_attendance, table_attendance$month)
+export(covid_data, "app_data.csv")
 
 
 ```
+
 
 
 ```{r}
