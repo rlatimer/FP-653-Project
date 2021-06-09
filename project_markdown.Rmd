@@ -170,59 +170,44 @@ write_sf(wst_cst, "wst_cst.shp")
 ```
 
 ```{r}
-<<<<<<<
+
 #Chris' mapping stuff
 ## Import Map Data
 map_url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
-=======
+
 #Join different data sources
 covid_data <- county_data %>% 
     left_join(covid_cases, by = c("fips", "month"))
->>>>>>>
 
-<<<<<<<
+
+
 counties_json <- rjson::fromJSON(file = url) %>% 
   unnest()
-=======
+
 export(covid_data, "app_data.csv")
->>>>>>>
 
 
-<<<<<<<
 wst_cst <- tigris::counties(state = c("California", "Oregon", "Washington")) %>% 
   janitor::clean_names() %>% 
   select(geoid, geometry) %>% 
   rename(fips = geoid)
-=======
-```
->>>>>>>
 
-<<<<<<<
 us_map <- tigris::counties() %>% 
   janitor::clean_names()
-=======
-
->>>>>>>
 
 us_map <- us_map %>% 
   janitor::clean_names() %>% 
   select(geoid, geometry) %>% 
   rename(fips = geoid)
 
-<<<<<<<
+
 write_sf(us_map, "us_county_geom.shp")
 write_sf(wst_cst, "wst_cst.shp")
-
-
 
 ```
 
 
 
-
-=======
-
->>>>>>>
 ```{r}
 #dont need this, will delete soon
 #plotting maps
