@@ -202,7 +202,7 @@ output$tmap2 <- renderTmap({
                     popup.vars = c(
             "County Name" = "county_name",
             "Covid Cases per 100,000" = "capita_covid",
-            "Share of Population" = "share_pop"), palette = "-plasma") +
+            "Share of Population" = "share_pop"), palette = "-inferno") +
         tm_bubbles(size = "capita_covid", col = "red", style = "cont",
                    palette = "red", alpha = 0.5,
                    size.max = max(state_all()$capita_covid)) +

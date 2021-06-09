@@ -1,5 +1,5 @@
 needs(tidyverse, RSocrata, rio)
-import()
+
 ## Import COVID Case data for 2020 in West Coast States
 months <- as.character(c(1:12)) %>% 
   str_pad(width = 2, side = "left", pad = "0")
