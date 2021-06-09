@@ -9,7 +9,7 @@
 # This app relies on 'urbnmapr'. Users may need to install this first by running the following line:
 # devtools::install_github("UrbanInstitute/urbnmapr")
 
-needs(tidyverse, sf, tmaptools, tmap, covidcast, reactable)
+needs(tidyverse, sf, tmaptools, tmap, covidcast)
 library(shiny)
 library(plotly)
 library(scales)
@@ -22,7 +22,6 @@ library(rjson)
 library(stringr)
 library(glue)
 library(RSocrata)
-library(reactable)
 
 
 tmap_mode("view")
@@ -34,13 +33,11 @@ g <- list(
     lakecolor = toRGB('white')
 )
 
-geo_data <- read_sf("wst_cst.shp")
+geo_data <- read_sf("us_county_geom.shp")
 
 county_demo <- county_census %>% 
     janitor::clean_names() %>% 
     select(fips, popestimate2019)
-
-options(scipen = 999)
 
 covid_cases <- read_csv("county_case_counts.csv") %>% 
     mutate(fips = str_pad(fips, width = 5, side = "left", pad = "0")) %>% 
@@ -51,18 +48,15 @@ covid_cases <- read_csv("county_case_counts.csv") %>%
     left_join(county_demo) %>% 
     distinct(month, fips, all_cases, popestimate2019) %>% 
     group_by(fips, month) %>% 
-    mutate(capita_covid = round((all_cases/(popestimate2019/100000)), 2),
-           per_pop = round((1/(all_cases/popestimate2019)), 0),
-           share_pop = paste("1 in", per_pop, sep = " ")) %>% 
-    select(fips, month, capita_covid, all_cases, per_pop, share_pop)
+    mutate(capita_covid = round((all_cases/(popestimate2019/100000)), 2)) %>% 
+    select(fips, month, capita_covid)
 
 
 county_data <- read_csv("app_attendance_data.csv") %>% 
     left_join(covid_cases)
 
 county_data <- geo_data %>% 
-    left_join(county_data, by = "fips") %>% 
-    mutate(county_name = str_to_title(county_name))
+    left_join(county_data, by = "fips")
 
 str(county_demo)
 
@@ -110,7 +104,7 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                                                                               "% of Schools With >50% decline in visitors" = "closed_50",
                                                                               "% of Schools With >75% decline in visitors" = "closed_75",
                                                                               "Mean % Change in School Visitors" = "mean_change")),
-                        radioButtons("state", label = "State", choices = c("California" = "CA", "Oregon" = "OR", "Washington" = "WA")),
+                        textInput("state", label = "State"),
                         width = 3
                     ),
                     
@@ -119,8 +113,8 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                         tabsetPanel(type = "tabs",
                         tabPanel("GGPlots", plotOutput("map")),
                         tabPanel("TMaps",
-                                 tmapOutput("tmap2"),
-                                 reactableOutput("table")),
+                                 tmapOutput("tmap"),
+                                 tmapOutput("tmap2")),
                         tabPanel("Plotly", plotlyOutput("plotly"), h5("Rendering takes some time."))
                     )
                 ))
@@ -160,7 +154,8 @@ state_all <- reactive({
 state_data <- reactive({
     county_data %>% 
         filter(month == month(),
-               state_abb == state())
+               state_abb == state()) %>% 
+        distinct(fips, .keep_all = TRUE)
 })
 
     # output$map <- renderPlot({
@@ -195,30 +190,20 @@ output$map <- renderPlot({
 }) %>%
     bindCache(input$month, input$share_closed, input$grade)
 
+output$tmap <- renderTmap({
+    tm_shape(state_data()) +
+    tm_polygons(variable()) +
+    tm_text("county_name", size = 0.5, color = "red")
+})
 
 output$tmap2 <- renderTmap({
     tm_shape(state_data()) +
-        tm_polygons(variable(), 
-                    popup.vars = c(
-            "County Name" = "county_name",
-            "Covid Cases per 100,000" = "capita_covid",
-            "Share of Population" = "share_pop"), palette = "-plasma") +
-        tm_bubbles(size = "capita_covid", col = "red", style = "cont",
-                   palette = "red", alpha = 0.5,
-                   size.max = max(state_all()$capita_covid)) +
-        tm_text("county_name", size = 0.4)
+        tm_polygons(variable(), popup.vars = c("County Name" = "county_name",
+        "Covid Cases per Capita" = "capita_covid")) +
+        tm_bubbles(size = "capita_covid", style = "fixed",
+                   palette = "Blues",
+                   size.max = max(state_all()$capita_covid))
 })
-
-output$table <- renderReactable({
-    as.data.frame(state_all()) %>% 
-        select(county_name, month, variable(), -geometry) %>% 
-        arrange(county_name) %>% 
-        reactable(filterable = TRUE,
-              defaultPageSize = 25, groupBy = "county_name"
-    )
-    
-})
-
 
 #adding state boundaries
 states <- plot_usmap(
