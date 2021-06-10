@@ -26,6 +26,7 @@ library(formattable)
 library(shinythemes)
 library(RSocrata)
 library(covidcast)
+library(sf)
 
 ```
 
@@ -142,8 +143,8 @@ covid_cases <- county_covid %>%
   group_by(fips, month) %>% 
   mutate(capita_covid = round((all_cases/(popestimate2019/100000)), 2),
          per_pop = round((1/(all_cases/popestimate2019)), 0),
-         share_pop = paste("1 in", per_pop, sep = " "),
-         fips = as.integer(fips)) %>% #changed fips type here to integer for later use
+         share_pop = paste("1 in", per_pop, sep = " ")) %>% 
+         # fips = as.integer(fips)) %>% #changed fips type here to integer for later use
   select(fips, month, month_names,capita_covid, all_cases, per_pop, share_pop)
 
 export(covid_cases, "county_case_counts.csv")
@@ -158,6 +159,11 @@ county_data <- read.csv("schools_county_csv.csv") %>%
          month_names = monthnum_to_names(., .$month))
 
 export(county_data, "app_attendance_data.csv")
+
+app_data <- county_data %>% 
+  left_join(covid_cases)
+
+export(app_data, "app_data.csv")
 
 # Import Mapping data
 wst_cst <- tigris::counties(state = c("California", "Oregon", "Washington")) %>% 
