@@ -203,6 +203,8 @@ output$tmap2 <- renderTmap({
     }
 })
 
+rv_map <- reactiveValues()
+
 county <- eventReactive(input$tmap2_shape_click, {
     click <- input$tmap2_shape_click
     print(input$tmap2_shape_click$id)
