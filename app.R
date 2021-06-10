@@ -66,55 +66,59 @@ county_data <- geo_data %>%
 
 str(county_demo)
 
-# 
-# -# tm_shape(test) +
-# #     tm_polygons("number_schools")
-# # 
-# # ggplot(test) +
-# #     geom_sf(aes(fill = number_schools, color = number_schools))
-# # 
-# 
-# tm_shape(test) +
-#     tm_polygons("number_schools")
-# 
-# ggplot(test) +
-#     geom_sf(aes(fill = number_schools, color = number_schools))
-# 
-# centroids <- st_centroid(test)
-# 
-# centroids <- centroids %>% 
-#     mutate(county = str_replace_all(county_name, " County", ""))
-# 
-# tm_shape(test) +
-#     tm_polygons("number_schools",
-#                 style = "cont") +
-#     tm_shape(centroids) +
-#     tm_text("county", size = 0.5) +
-#     tm_layout(legend.outside = TRUE)
-
-
 # Define UI for application that draws a histogram
 ui <- fluidPage(theme = shinytheme("flatly"),
                 
                 # Application title
                 titlePanel("Attendance Change App"),
-               h5("Compares the year-over-year change in school attendance during 2020"),
+                h5("Compares the year-over-year change in school attendance during 2020"),
                 h6("Chris Ives, Tess Sameshima, Rachael Latimer"),
                 
-                # Sidebar with a slider input for number of bins 
+                # Sidebar with a slider input for number of bins
                 sidebarLayout(
                     sidebarPanel(
-                        sliderInput("month", label = "Month", min = 1, max = 12, value = 1, ticks = F, animate = T),
-                        radioButtons("grade", label = "School Level", choices = c("All" = "all", "Elementary" = "elem", "Middle-High" = "middlehigh")),
-                        selectInput("share_closed", "Variable of Interest", c("% of Schools With >25% decline in visitors" = "closed_25",
-                                                                              "% of Schools With >50% decline in visitors" = "closed_50",
-                                                                              "% of Schools With >75% decline in visitors" = "closed_75",
-                                                                              "Mean % Change in School Visitors" = "mean_change")),
-                        radioButtons("state", label = "State", choices = c("California" = "CA", "Oregon" = "OR", "Washington" = "WA")),
+                        sliderInput(
+                            "month",
+                            label = "Month",
+                            min = 1,
+                            max = 12,
+                            value = 1,
+                            ticks = F,
+                            animate = T
+                        ),
+                        radioButtons(
+                            "grade",
+                            label = "School Level",
+                            choices = c(
+                                "All" = "all",
+                                "Elementary" = "elem",
+                                "Middle-High" = "middlehigh"
+                            )
+                        ),
+                        selectInput(
+                            "share_closed",
+                            "Variable of Interest",
+                            c(
+                                "Mean % Change in School Visitors" = "mean_change",
+                                "% of Schools With >25% decline in visitors" = "closed_25",
+                                "% of Schools With >50% decline in visitors" = "closed_50",
+                                "% of Schools With >75% decline in visitors" = "closed_75"
+                            )
+                        ),
+                        radioButtons(
+                            "state",
+                            label = "State",
+                            choices = c(
+                                "California" = "CA",
+                                "Oregon" = "OR",
+                                "Washington" = "WA"
+                            )
+                        ),
                         width = 3
                     ),
                     
                     # Show a plot of the generated distribution
+<<<<<<< Updated upstream
                     mainPanel(
                         tabsetPanel(type = "tabs",
                         tabPanel("GGPlots", plotOutput("map")),
@@ -124,20 +128,41 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                         tabPanel("Plotly", plotlyOutput("plotly"), h5("Rendering takes some time."))
                     )
                 ))
+=======
+                    mainPanel(tabsetPanel(
+                        type = "tabs",
+                        tabPanel(
+                            "TMaps",
+                            tmapOutput("tmap2", width = "100%", height = 700),
+                            textOutput("narr"),
+                            reactableOutput("test"),
+                            reactableOutput("table")
+                        )
+                    ))
+                )
+>>>>>>> Stashed changes
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
     
-    month <- reactive({input$month})
-    grade <- reactive({input$grade})
-    share_closed <- reactive({input$share_closed})
-    state <- reactive({input$state})
+    month <- reactive({
+        input$month
+    })
+    grade <- reactive({
+        input$grade
+    })
+    share_closed <- reactive({
+        input$share_closed
+    })
+    state <- reactive({
+        input$state
+    })
     
     pct <- reactive({
-        str_sub(share_closed(), -2, -1)
+        str_sub(share_closed(),-2,-1)
     })
-
+    
     variable <- reactive({
         if (input$share_closed == "mean_change") {
             glue('mean_{input$grade}_change')
@@ -147,6 +172,7 @@ server <- function(input, output) {
         }
     })
     
+<<<<<<< Updated upstream
 data <- reactive({
     county_data %>% 
         filter(month == month())
@@ -162,6 +188,18 @@ state_data <- reactive({
         filter(month == month(),
                state_abb == state())
 })
+=======
+    state_all <- reactive({
+        county_data %>%
+            filter(state_abb == input$state)
+    })
+    
+    state_data <- reactive({
+        county_data %>%
+            filter(month == input$month,
+                   state_abb == input$state)
+    })
+>>>>>>> Stashed changes
 
     # output$map <- renderPlot({
     #     data() %>%
@@ -198,6 +236,7 @@ output$map <- renderPlot({
 
 output$tmap2 <- renderTmap({
     tm_shape(state_data()) +
+<<<<<<< Updated upstream
         tm_polygons(variable(), 
                     popup.vars = c(
             "County Name" = "county_name",
@@ -207,15 +246,100 @@ output$tmap2 <- renderTmap({
                    palette = "red", alpha = 0.5,
                    size.max = max(state_all()$capita_covid)) +
         tm_text("county_name", size = 0.4)
+=======
+        if (input$share_closed == "mean_change") {
+            tm_polygons(
+                variable(),
+                popup.vars = c(
+                    "County Name" = "county_name",
+                    "Covid Cases per 100,000" = "capita_covid",
+                    "Share of Population" = "share_pop"
+                ),
+                palette = "viridis",
+                breaks = c(seq(-100, 100, 20)),
+                midpoint = 0
+            ) +
+                tm_text("county_name", size = 0.7) +
+                tm_bubbles(
+                    size = "capita_covid",
+                    col = "red",
+                    alpha = 0.5,
+                    popup.vars = c(
+                        "County Name" = "county_name",
+                        "Covid Cases per 100,000" = "capita_covid",
+                        "Share of Population" = "share_pop"
+                    )
+                )
+        }
+    else {
+        tm_polygons(
+            variable(),
+            popup.vars = c(
+                "County Name" = "county_name",
+                "Covid Cases per 100,000" = "capita_covid",
+                "Share of Population" = "share_pop"
+            ),
+            palette = "viridis",
+            breaks = c(seq(0, 100, 10)),
+            midpoint = 50
+        ) +
+            tm_text("county_name", size = 0.7) +
+            tm_bubbles(
+                size = "capita_covid",
+                col = "red",
+                alpha = 0.5,
+                popup.vars =
+                    c(
+                        "County Name" = "county_name",
+                        "Covid Cases per 100,000" = "capita_covid",
+                        "Share of Population" = "share_pop"
+                    )
+            )
+    }
+>>>>>>> Stashed changes
 })
 
+rv_map <-reactiveValues()
+
+observeEvent(input$tmap2_shape_click, {
+    click <- input$tmap2_shape_click
+    print(input$tmap2_shape_click$id)
+    print(substr(click$id, 2, 6))
+    rv_map$county_click <- (substr(click$id, 2, 6))
+    print(rv_map$county)
+})
+
+narr_data <- reactive({
+    county_data %>%
+        filter(month == input$month,
+               state_abb == input$state,
+               fips == rv_map$county)
+})
+
+
+
+# output$narr <- renderText({
+#     glue("In {isolate(narr_data()$county_name)} cases per 100,000")
+# })
+
+output$test <- renderReactable({
+    as.data.frame(narr_data()) %>% 
+        reactable(
+            defaultPageSize = 25,
+        )
+    
+})
+
+
 output$table <- renderReactable({
-    as.data.frame(state_all()) %>% 
-        select(county_name, month, variable(), -geometry) %>% 
-        arrange(county_name) %>% 
-        reactable(filterable = TRUE,
-              defaultPageSize = 25, groupBy = "county_name"
-    )
+    as.data.frame(state_all()) %>%
+        select(county_name, month, variable(),-geometry) %>%
+        arrange(county_name) %>%
+        reactable(
+            filterable = TRUE,
+            defaultPageSize = 25,
+            groupBy = "county_name"
+        )
     
 })
 
