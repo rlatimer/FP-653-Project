@@ -42,8 +42,7 @@ county_data <- geo_data %>%
 ui <- fluidPage(theme = shinytheme("flatly"),
                 
                 # Application title
-                titlePanel("Attendance Change App"),
-                h5("Compares the year-over-year change in school attendance during 2020"),
+                titlePanel("School Attendance Patterns During the COVID-19 Pandemic"),
                 h6("Chris Ives, Tess Sameshima, Rachael Latimer"),
                 
                 # Sidebar with a slider input for number of bins
@@ -93,9 +92,14 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                     
                     # Show a plot of the generated distribution
                     mainPanel(
+                        h5(strong("This dashboard visualizes the change in school attendance for each month in 2020 compared to 2019 for each 
+                           county in the western United States. Data is also provided for the total COVID-19 cases by county, when available.")),
                             tmapOutput("tmap2", width = "100%", height = 700),
                             reactableOutput("test"),
-                            reactableOutput("table")
+                            h3("School Attendance Data", align = "center"),
+                            reactableOutput("table"),
+                            h3("CDC County Case Data", align = "center"),
+                            reactableOutput("cdc_table")
                         )
                     ))
 
@@ -183,6 +187,7 @@ output$tmap2 <- renderTmap({
         if (input$share_closed == "mean_change") {
             tm_polygons(
                 variable(),
+                title = "Percent Change",
                 popup.vars = c(
                     "County Name" = "county_name",
                     "Covid Cases per 100,000" = "capita_covid",
@@ -212,6 +217,7 @@ output$tmap2 <- renderTmap({
                 "Covid Cases per 100,000" = "capita_covid",
                 "Share of Population" = "share_pop"
             ),
+            title = "Percent of Schools",
             palette = "viridis",
             breaks = c(seq(0, 100, 10)),
             midpoint = 50
@@ -258,30 +264,55 @@ output$narr <- renderText({
     if (input$share_closed == "mean_change") {
     text <- glue("In {paste(narr_data()$county_name)} County, schools saw a 
          {paste(narr_data()[,4])} percent change in visitors during {paste(narr_data()$month_names)} of 2020, compared to the previous year. 
-                 Reported cases levels for {paste(narr_data()$county_name)} County in {paste(narr_data()$month_names)} 2020 were {paste(narr_data()$capita_covid)} per 100,000 residents.")
+                 Reported cases in {paste(narr_data()$county_name)} County during {paste(narr_data()$month_names)} 2020 were {paste(narr_data()$capita_covid)} per 100,000 residents.")
     return(text)
     }
     else {
         text <- glue("In {paste(narr_data()$county_name)} County, approximately {paste(narr_data()[,4])} percent of schools saw at least a 
           {paste(pct())} percent decline in visitors during {paste(narr_data()$month_names)} of 2020, compared to the previous year. 
-                 Reported cases levels for {paste(narr_data()$county_name)} County in {paste(narr_data()$month_names)} 2020 were {paste(narr_data()$capita_covid)} per 100,000 residents.")
+                 Reported cases in {paste(narr_data()$county_name)} County during {paste(narr_data()$month_names)} 2020 were {paste(narr_data()$capita_covid)} per 100,000 residents.")
         return(text)
     }
 })
 
 
 output$table <- renderReactable({
-    as.data.frame(state_all()) %>%
-        select(county_name, month, variable(),-geometry) %>%
-        arrange(county_name) %>%
-        reactable(
-            filterable = TRUE,
-            defaultPageSize = 25,
-            groupBy = "county_name"
+    school_table <- as.data.frame(county_data) %>% #change data to master dataframe
+        select(month_names, county_name, state_abb, total_students, number_schools, share_all_closed_25, share_all_closed_50, share_all_closed_75, mean_all_change) %>%
+        arrange(county_name, state_abb) %>%
+        rename("% of Schools with at least 25% visitor decline from 2019" = share_all_closed_25,
+               "% of Schools with at least 50% visitor decline from 2019" = share_all_closed_50,
+               "% of Schools with at least 75% visitor decline from 2019" = share_all_closed_75,
+               "Mean % change of in person visits from 2019" = mean_all_change,
+               "Month" = month_names,
+               "County Name" = county_name,
+               "State" = state_abb,
+               "Total Students" = total_students,
+               "Number of Schools" = number_schools) %>%
+        reactable(filterable = TRUE,
+                  defaultPageSize = 11,
+                  defaultColDef = colDef(align = "center")
         )
+    return(school_table)
     
 })
 
+output$cdc_table <- renderReactable({
+as.data.frame(county_data) %>% 
+    select(month_names, county_name, state_abb, all_cases, capita_covid, share_pop) %>% 
+    reactable(
+        searchable = TRUE,
+        filterable = TRUE,
+        columns = list(
+            month_names = colDef(name="Month"),
+            county_name = colDef(name="County"),
+            state_abb = colDef(name="State"),
+            all_cases = colDef(name="Total COVID-19 cases"),
+            capita_covid = colDef(name="COVID-19 cases per 100,000"),
+            share_pop = colDef(name="Cases as Share of Population")),
+        defaultPageSize = 11,
+        defaultColDef = colDef(align = "center"))
+})
 }
 # Run the application 
 shinyApp(ui = ui, server = server)
