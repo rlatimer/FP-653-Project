@@ -50,6 +50,11 @@ monthnum_to_names <- function(data, column) {
   } 
 }
 
+fips_pad <- function(data, fips) {
+  data %>% 
+    mutate(fips = str_pad(fips, width = 5, side = "left", pad = "0"))
+  }
+
 
 ```
 
@@ -106,20 +111,20 @@ monthnum_to_names <- function(data, column) {
 # 
 # 
 # ## Joining population data with covid case data and calculating additional variables
-# covid_cases <- county_covid %>% 
+# covid_cases <- county_covid %>%
 #   rename(fips = county_fips_code,
 #          month = case_month) %>% ##moving his earlier in the pipe
-#   mutate(fips = str_pad(fips, width = 5, side = "left", pad = "0")) %>% 
-#   group_by(fips, month) %>% 
-#   mutate(all_cases = sum(total_cases)) %>% 
-#   ungroup() %>% 
-#   mutate(month_names = monthnum_to_names(county_covid, county_covid$case_month)) %>% 
-#   left_join(county_demo) %>% 
-#   distinct(month, month_names, fips, all_cases, popestimate2019) %>% 
-#   group_by(fips, month) %>% 
+#   fips_pad(fips) %>% 
+#   group_by(fips, month) %>%
+#   mutate(all_cases = sum(total_cases)) %>%
+#   ungroup() %>%
+#   mutate(month_names = monthnum_to_names(county_covid, county_covid$case_month)) %>%
+#   left_join(county_demo) %>%
+#   distinct(month, month_names, fips, all_cases, popestimate2019) %>%
+#   group_by(fips, month) %>%
 #   mutate(capita_covid = round((all_cases/(popestimate2019/100000)), 2),
 #          per_pop = round((1/(all_cases/popestimate2019)), 0),
-#          share_pop = paste("1 in", per_pop, sep = " ")) %>% 
+#          share_pop = paste("1 in", per_pop, sep = " ")) %>%
 #          # fips = as.integer(fips)) %>% #changed fips type here to integer for later use
 #   select(fips, month, month_names,capita_covid, all_cases, per_pop, share_pop)
 # 
@@ -130,7 +135,7 @@ monthnum_to_names <- function(data, column) {
 #   filter(year == 2020) %>% 
 #   rename(fips = countyfips3) %>% 
 #   mutate(fips = as.character(fips),
-#          fips = str_pad(fips, width = 5, side = "left", pad = "0"),
+         # fips_pad(fips) %>% 
 #          across(7:18, ~ .x *100),
 #          across(where(is.numeric), round, 2),
 #          month_names = monthnum_to_names(., .$month),
