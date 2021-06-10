@@ -2,25 +2,14 @@
 # This is a Shiny web application. You can run the application by clicking
 # the 'Run App' button above.
 #
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
-# This app relies on 'urbnmapr'. Users may need to install this first by running the following line:
-# devtools::install_github("UrbanInstitute/urbnmapr")
 
 library(shiny)
-library(plotly)
 library(scales)
 library(tidyverse)
 library(shinythemes)
-library(usmap)
-library(urbnmapr)
 library(viridis)
-library(rjson)
 library(stringr)
 library(glue)
-library(RSocrata)
 library(reactable)
 library(sf)
 library(tmap)
@@ -137,34 +126,11 @@ data <- reactive({
         filter(month == month())
 })
 
-state_all <- reactive({
-    county_data %>% 
-        filter(state_abb == state())
-})
-
 state_data <- reactive({
     county_data %>% 
         filter(month == month(),
                state_abb == state())
 })
-
-
-    # output$map <- renderPlot({
-    #     data() %>%
-    #         ggplot(aes(long, lat, group = group, fill = mean_all)) +
-    #         geom_polygon(color = NA) +
-    #         coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
-    #         scale_fill_viridis(limits = c(-1, 1)) +
-    #         labs(fill = "Mean All Change")
-    # })
-    #     
-
-# output$map <- renderPlot({
-#     plot_usmap(regions = "counties", data = data(), values = variable()) + 
-#     labs(title = "Schools experiencing a year-over-year decline of at least 50 percent for month:",
-#          subtitle = "subtitle here") + 
-#     theme(panel.background = element_rect(color = "black", fill = "lightblue"))
-# })
 
 output$map <- renderPlot({
     plot_usmap(regions = "counties",
@@ -236,8 +202,6 @@ output$tmap2 <- renderTmap({
             )
     }
 })
-
-rv_map <-reactiveValues()
 
 county <- eventReactive(input$tmap2_shape_click, {
     click <- input$tmap2_shape_click
