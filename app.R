@@ -86,22 +86,18 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                                 "Washington" = "WA"
                             )
                         ),
+                        h5(strong("Interpretive Narrative")),
+                        textOutput("narr"),
                         width = 3
                     ),
                     
                     # Show a plot of the generated distribution
-                    mainPanel(tabsetPanel(
-                        type = "tabs",
-                        tabPanel(
-                            "TMaps",
+                    mainPanel(
                             tmapOutput("tmap2", width = "100%", height = 700),
-                            textOutput("narr"),
                             reactableOutput("test"),
                             reactableOutput("table")
                         )
                     ))
-                )
-)
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
@@ -237,33 +233,40 @@ output$tmap2 <- renderTmap({
 
 rv_map <-reactiveValues()
 
-observeEvent(input$tmap2_shape_click, {
+county <- eventReactive(input$tmap2_shape_click, {
     click <- input$tmap2_shape_click
     print(input$tmap2_shape_click$id)
     print(substr(click$id, 2, 6))
     rv_map$county_click <- (substr(click$id, 2, 6))
-    print(rv_map$county)
+    print(rv_map$county_click)
+    return(rv_map$county_click)
 })
 
 narr_data <- reactive({
-    county_data %>%
+    as.data.frame(county_data) %>%
         filter(month == input$month,
                state_abb == input$state,
-               fips == rv_map$county)
+               fips == county()) %>% 
+        select(county_name, month_names, capita_covid, variable())
 })
 
-
-
-# output$narr <- renderText({
-#     glue("In {isolate(narr_data()$county_name)} cases per 100,000")
-# })
-
-output$test <- renderReactable({
-    as.data.frame(narr_data()) %>% 
-        reactable(
-            defaultPageSize = 25,
-        )
-    
+output$narr <- renderText({
+    if (is.null(county())) {
+        text <- paste("")
+        return(text)
+}
+    if (input$share_closed == "mean_change") {
+    text <- glue("In {paste(narr_data()$county_name)} County, schools saw a 
+         {paste(narr_data()[,4])} percent change in visitors during {paste(narr_data()$month_names)} of 2020, compared to the previous year. 
+                 Reported cases levels for {paste(narr_data()$county_name)} County in {paste(narr_data()$month_names)} 2020 were {paste(narr_data()$capita_covid)} per 100,000 residents.")
+    return(text)
+    }
+    else {
+        text <- glue("In {paste(narr_data()$county_name)} County, approximately {paste(narr_data()[,4])} percent of schools saw at least a 
+          {paste(pct())} percent decline in visitors during {paste(narr_data()$month_names)} of 2020, compared to the previous year. 
+                 Reported cases levels for {paste(narr_data()$county_name)} County in {paste(narr_data()$month_names)} 2020 were {paste(narr_data()$capita_covid)} per 100,000 residents.")
+        return(text)
+    }
 })
 
 
