@@ -48,39 +48,11 @@ monthnum_to_names <- function(data, column) {
     return(month.name[column])
   } 
 }
-monthnum_to_names(table_attendance, table_attendance$month)
 
 
 ```
 
 
-```{r}
-#Chris merges this later on so will delete once I can get his portion organized
-  #bring in data
-  
-  county_sch <- import(here("schools_county_csv2.xlsx")) %>% 
-    clean_names() %>%
-    as_tibble()
-  
-  #need the variable 'fips' for mapping
-  cmap <- rename(county_sch, "fips" = "countyfips4")
-  
-  #only keep 2020 data
-  cmap2020 <- 
-    cmap %>% 
-    filter(year == 2020) %>% 
-    group_by(month)
-  
-  
-  #check min max of share_all_closed_50 for scaling reasons
-  min(cmap2020$share_all_closed_50, na.rm = T)
-  max(cmap2020$share_all_closed_50, na.rm = T)
-  mean(cmap2020$share_all_closed_50, na.rm = T)
-  sd(cmap2020$share_all_closed_50, na.rm = T)
-  
-
-
-```
 
 ```{r}
 #functions for later
@@ -104,75 +76,81 @@ monthnum_to_names <- function(data, column) {
 
 
 ```{r}
-#Consolidated dataframe to use as base
-#Count Cases by County and Age Group
-# Import COVID Case data for 2020 in West Coast States(CA, OR, WA)
-covid_data <- import("west_coast_covid_data.csv") 
-  
+#Data cleaning section commented out for the sake of upload/download speed and file size requirments.
+#File generated will be stored on github (app_data.csv) 
 
-# Cleaning covid_data
-county_covid <- covid_data %>%
-  drop_na(county_fips_code) %>% 
-  group_by(case_month, county_fips_code, age_group) %>% 
-  nest() %>% 
-  mutate(total_cases = map_dbl(data, ~nrow(.x)),
-         age_group = ifelse(is.na(age_group), "Unknown", age_group),
-         case_month = as.numeric(
-           substr(case_month, 6, 7))) %>% 
-  select(-data) %>% 
-  arrange(county_fips_code, case_month)
-
-
-## Importing population data for per capita estimates
-county_demo <- covidcast::county_census %>% 
-  janitor::clean_names() %>% 
-  select(fips, popestimate2019)
-
-
-## Joining population data with covid case data and calculating additional variables
-covid_cases <- county_covid %>% 
-  rename(fips = county_fips_code,
-         month = case_month) %>% ##moving his earlier in the pipe
-  mutate(fips = str_pad(fips, width = 5, side = "left", pad = "0")) %>% 
-  group_by(fips, month) %>% 
-  mutate(all_cases = sum(total_cases)) %>% 
-  ungroup() %>% 
-  mutate(month_names = monthnum_to_names(county_covid, county_covid$case_month)) %>% 
-  left_join(county_demo) %>% 
-  distinct(month, month_names, fips, all_cases, popestimate2019) %>% 
-  group_by(fips, month) %>% 
-  mutate(capita_covid = round((all_cases/(popestimate2019/100000)), 2),
-         per_pop = round((1/(all_cases/popestimate2019)), 0),
-         share_pop = paste("1 in", per_pop, sep = " ")) %>% 
-         # fips = as.integer(fips)) %>% #changed fips type here to integer for later use
-  select(fips, month, month_names,capita_covid, all_cases, per_pop, share_pop)
-
-export(covid_cases, "county_case_counts.csv")
-
-## Import and Process Attendance Data
-county_data <- read.csv("schools_county_csv.csv") %>% 
-  filter(year == 2020) %>% 
-  rename(fips = countyfips3) %>% 
-  mutate(fips = as.character(fips),
-         fips = str_pad(fips, width = 5, side = "left", pad = "0"),
-         across(7:18, ~ .x *100),
-         across(where(is.numeric), round, 2),
-         month_names = monthnum_to_names(., .$month),
-         county_name = str_to_title(county_name))
-
-export(county_data, "app_attendance_data.csv")
+# #Consolidated dataframe to use as base
+# #Count Cases by County and Age Group
+# # Import COVID Case data for 2020 in West Coast States(CA, OR, WA)
+# covid_data <- import("west_coast_covid_data.csv")
+#   
+# 
+# # Cleaning covid_data
+# county_covid <- covid_data %>%
+#   drop_na(county_fips_code) %>% 
+#   group_by(case_month, county_fips_code, age_group) %>% 
+#   nest() %>% 
+#   mutate(total_cases = map_dbl(data, ~nrow(.x)),
+#          age_group = ifelse(is.na(age_group), "Unknown", age_group),
+#          case_month = as.numeric(
+#            substr(case_month, 6, 7))) %>% 
+#   select(-data) %>% 
+#   arrange(county_fips_code, case_month)
+# 
+# 
+# ## Importing population data for per capita estimates
+# county_demo <- covidcast::county_census %>% 
+#   janitor::clean_names() %>% 
+#   select(fips, popestimate2019)
+# 
+# 
+# ## Joining population data with covid case data and calculating additional variables
+# covid_cases <- county_covid %>% 
+#   rename(fips = county_fips_code,
+#          month = case_month) %>% ##moving his earlier in the pipe
+#   mutate(fips = str_pad(fips, width = 5, side = "left", pad = "0")) %>% 
+#   group_by(fips, month) %>% 
+#   mutate(all_cases = sum(total_cases)) %>% 
+#   ungroup() %>% 
+#   mutate(month_names = monthnum_to_names(county_covid, county_covid$case_month)) %>% 
+#   left_join(county_demo) %>% 
+#   distinct(month, month_names, fips, all_cases, popestimate2019) %>% 
+#   group_by(fips, month) %>% 
+#   mutate(capita_covid = round((all_cases/(popestimate2019/100000)), 2),
+#          per_pop = round((1/(all_cases/popestimate2019)), 0),
+#          share_pop = paste("1 in", per_pop, sep = " ")) %>% 
+#          # fips = as.integer(fips)) %>% #changed fips type here to integer for later use
+#   select(fips, month, month_names,capita_covid, all_cases, per_pop, share_pop)
+# 
+# export(covid_cases, "county_case_counts.csv")
+# 
+# ## Import and Process Attendance Data
+# county_data <- read.csv("schools_county_csv.csv") %>% 
+#   filter(year == 2020) %>% 
+#   rename(fips = countyfips3) %>% 
+#   mutate(fips = as.character(fips),
+#          fips = str_pad(fips, width = 5, side = "left", pad = "0"),
+#          across(7:18, ~ .x *100),
+#          across(where(is.numeric), round, 2),
+#          month_names = monthnum_to_names(., .$month),
+#          county_name = str_to_title(county_name))
+# 
+# export(county_data, "app_attendance_data.csv")
 
 ## Combine Attendance Data and COVID Case Data
-app_data <- county_data %>% 
-  left_join(covid_cases) %>% 
-  filter(state_abb == "CA" | state_abb == "OR" | state_abb == "WA")
+# app_data <- county_data %>%
+#   left_join(covid_cases) %>%
+#   filter(state_abb == "CA" | state_abb == "OR" | state_abb == "WA")
+# 
+# export(app_data, "app_data.csv")
 
-export(app_data, "app_data.csv")
+#Import app_data
+app_data <- import("app_data.csv")
 
 # Import Mapping data
-wst_cst <- tigris::counties(state = c("California", "Oregon", "Washington")) %>% 
-  janitor::clean_names() %>% 
-  select(geoid, geometry) %>% 
+wst_cst <- tigris::counties(state = c("California", "Oregon", "Washington")) %>%
+  janitor::clean_names() %>%
+  select(geoid, geometry) %>%
   rename(fips = geoid)
 
 write_sf(wst_cst, "wst_cst.shp")
@@ -183,16 +161,16 @@ write_sf(wst_cst, "wst_cst.shp")
 
 ```{r}
 #Racheals cdc plots
-cdc_plots <- county_covid %>% #need to reference county_covid, watch out for some column names for the time being 
+cdc_plots <- app_data %>% #need to reference county_covid, watch out for some column names for the time being 
   group_by( fips) %>% 
   nest() %>% 
   mutate(plot = pmap(list(fips, data), ~{
-    ggplot(..2, aes(x=case_month,
+    ggplot(..2, aes(x=month,
                     y=total_cases,
                     color = age_group)) +
       geom_point() +
       geom_line(alpha = 0.7, size = 1) +
-      scale_x_discrete(limits = c(0, max(cdc$case_month)), 
+      scale_x_discrete(limits = c(0, max(app_data$month)), 
                        expand = c(0, 0)) +
       labs(title = glue("County with FIPS code: {.x} "),
            x = "Month in 2020",
