@@ -82,13 +82,15 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                     # Show a plot of the generated distribution
                     mainPanel(
                         h5(strong("This dashboard visualizes the change in school attendance for each month in 2020 compared to 2019 for each 
-                           county in the western United States. Data is also provided for the total COVID-19 cases by county, when available.")),
+                           county in the western United States. Data is also provided for the total COVID-19 cases by county, when available.
+                                  Attendance patterns are represented using anonymized cell phone foot-traffic data at school sites.")),
                             tmapOutput("tmap2", width = "100%", height = 700),
                             reactableOutput("test"),
                             h3("School Attendance Data", align = "center"),
                             reactableOutput("table"),
                             h3("CDC County Case Data", align = "center"),
-                            reactableOutput("cdc_table")
+                            reactableOutput("cdc_table"),
+                        h5("Data source: https://www.nature.com/articles/s41562-021-01087-8")
                         )
                     ))
 
