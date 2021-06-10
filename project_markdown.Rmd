@@ -176,14 +176,14 @@ cdc_plots <- app_data %>% #need to reference county_covid, watch out for some co
                     )) +
       geom_point() +
       geom_line(alpha = 0.7, size = 1) +
-      scale_x_discrete(limits = factor(c(0,max(app_data$month))), 
+      scale_x_discrete(limits = (1:12),
                        expand = c(0, 0)) +
       labs(title = glue("County with FIPS code: {.x} "),
            x = "Month in 2020",
            y = "Total Cases")
   })
   )
-cdc_plots$plot[[3]]
+cdc_plots$plot[[1]]
 #example plot
 # cdc_plots$plot[[1]]  
 
@@ -231,39 +231,40 @@ cdc_table
 
 ```{r}
 #table for attendance data, with reactable? meant for shiny app will move it to the app once I know whats going on
+#Used in app so commented out, also takes time to load  
 
-table_attendance <- app_data %>% #change data to master dataframe
-  ungroup() %>%
-  select(month_names, county_name, total_students, number_schools, share_all_closed_25, share_all_closed_50, share_all_closed_75, mean_all_change) %>% #watch out for what fips is called later on
-  rename("Ratio of Schools with at least 25% visitor decline from 2019" = share_all_closed_25,
-         "Ratio of Schools with at least 50% visitor decline from 2019" = share_all_closed_50,
-         "Ratio of Schools with at least 75% visitor decline from 2019" = share_all_closed_75,
-         "Mean change ratio of in person visits from 2019 (+:Decline from 2019,-:Increase from 2019)" = mean_all_change,
-         "Month" = month,
-         "County Name" = county_name,
-         "Total Students" = total_students,
-         "Number of Schools" = number_schools)
-
-
-
-#shiny app stuff for table
-ui <- fluidPage(
-  reactableOutput("table"), theme = shinytheme("cyborg")
-)
-
-server <- function(input, output) {
-  output$table <- renderReactable({
-    reactable(table_attendance,
-              filterable = TRUE,
-              defaultPageSize = 25,
-    )
-    
-  })
-}
-
-shinyApp(ui, server)
-
-ggplot()
+# table_attendance <- app_data %>% #change data to master dataframe
+#   ungroup() %>%
+#   select(month_names, county_name, total_students, number_schools, share_all_closed_25, share_all_closed_50, share_all_closed_75, mean_all_change) %>% #watch out for what fips is called later on
+#   rename("Ratio of Schools with at least 25% visitor decline from 2019" = share_all_closed_25,
+#          "Ratio of Schools with at least 50% visitor decline from 2019" = share_all_closed_50,
+#          "Ratio of Schools with at least 75% visitor decline from 2019" = share_all_closed_75,
+#          "Mean change ratio of in person visits from 2019 (+:Decline from 2019,-:Increase from 2019)" = mean_all_change,
+#          "Month" = month,
+#          "County Name" = county_name,
+#          "Total Students" = total_students,
+#          "Number of Schools" = number_schools)
+# 
+# 
+# 
+# #shiny app stuff for table
+# ui <- fluidPage(
+#   reactableOutput("table"), theme = shinytheme("cyborg")
+# )
+# 
+# server <- function(input, output) {
+#   output$table <- renderReactable({
+#     reactable(table_attendance,
+#               filterable = TRUE,
+#               defaultPageSize = 25,
+#     )
+#     
+#   })
+# }
+# 
+# shinyApp(ui, server)
+# 
+# ggplot()
 
 
 ```
