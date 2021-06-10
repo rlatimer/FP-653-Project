@@ -1,0 +1,14 @@
+name: FP-653-Project
+title: FP-653-Project
+username:
+account: ives
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4249282
+bundleId: 4699380
+url: https://ives.shinyapps.io/FP-653-Project/
+when: 1623294782.58165
+lastSyncTime: 1623294782.58167
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .RData|.RDataTmp|.RDataTmp1|~$p description.docx|App description.docx|app_attendance_data.csv|CDC COVID 19 case surveillance public use data with geography oregon.xlsx|county_case_counts.csv|data_processing.R|LICENSE|project_markdown.Rmd|README.md|schools_county_csv.csv|us_county_geom.dbf|us_county_geom.prj|us_county_geom.shp.zip|us_county_geom.shx|west_coast_covid_data.csv|archive|plots
