@@ -156,6 +156,7 @@ county_data <- read.csv("schools_county_csv.csv") %>%
   mutate(fips = as.character(fips),
          fips = str_pad(fips, width = 5, side = "left", pad = "0"),
          across(7:18, ~ .x *100),
+         across(where(is.numeric), round, 2),
          month_names = monthnum_to_names(., .$month),
          county_name = str_to_title(county_name))
 
@@ -244,24 +245,16 @@ cdc_table
 ```
 
 
-
-```{r}
-#saving plots to file
-
-
-```
-
 ```{r}
 #table for attendance data, with reactable? meant for shiny app will move it to the app once I know whats going on
 
-table_attendance <- cmap2020 %>% #change data to master dataframe
+table_attendance <- app_data %>% #change data to master dataframe
   ungroup() %>%
-  mutate(month = monthnum_to_names(cmap2020, cmap2020$month)) %>% #also remove later since ill do this when organizing data
   filter(state_abb == "OR") %>% #remove this once consolidated dataframe is done
   select(month, county_name, total_students, number_schools, share_all_closed_25, share_all_closed_50, share_all_closed_75, mean_all_change, fips) %>% #watch out for what fips is called later on
-  rename("Ratio of Schools with at least 25% vistor decline from 2019" = share_all_closed_25,
-         "Ratio of Schools with at least 50% vistor decline from 2019" = share_all_closed_50,
-         "Ratio of Schools with at least 75% vistor decline from 2019" = share_all_closed_75,
+  rename("Ratio of Schools with at least 25% visitor decline from 2019" = share_all_closed_25,
+         "Ratio of Schools with at least 50% visitor decline from 2019" = share_all_closed_50,
+         "Ratio of Schools with at least 75% visitor decline from 2019" = share_all_closed_75,
          "Mean change ratio of in person visits from 2019 (+:Decline from 2019,-:Increase from 2019)" = mean_all_change,
          "Month" = month,
          "County Name" = county_name,
@@ -288,9 +281,6 @@ server <- function(input, output) {
 shinyApp(ui, server)
 
 ggplot()
-
-
-
 
 
 ```
