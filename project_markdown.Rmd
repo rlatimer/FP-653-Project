@@ -10,7 +10,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r}
-#load librarys 
+#package installs if not already installed:
+#install.packages("covidcast")
+#install.packages("formattable")
+
+#load libraries 
 library(tidyverse)
 library(janitor)
 library(ggplot2)
@@ -82,7 +86,7 @@ monthnum_to_names <- function(data, column) {
 
 
 ```{r}
-#Data cleaning section commented out for the sake of upload/download speed and file size requirments.
+#Data cleaning section commented out for the sake of upload/download speed and file size requirements.
 #File generated will be stored on github (app_data.csv) 
 
 # #Consolidated dataframe to use as base
@@ -166,28 +170,29 @@ write_sf(wst_cst, "wst_cst.shp")
 
 
 ```{r}
-#Racheals cdc plots
+# CDC plots
 cdc_plots <- app_data %>%
   na.omit() %>% 
-  group_by( fips) %>% 
+  group_by( fips, state_abb, county_name) %>% 
   nest() %>% 
-  mutate(plot = pmap(list(fips, data), ~{
-    ggplot(..2, aes(x=month,
+  mutate(plot = pmap(list(fips, state_abb, county_name, data), ~{
+    ggplot(..4, aes(x=month,
                     y=all_cases
                     )) +
       geom_point() +
       geom_line(alpha = 0.7, size = 1) +
       scale_x_discrete(limits = factor(1:12),
                        expand = c(0.01,0.01)) +
-      labs(title = glue("County with FIPS code: {.x} "),
+      labs(title = glue("{..3} County, {..2}"),
            x = "Month in 2020",
            y = "Total Cases")
   })
   )
-cdc_plots$plot[[8]]
-#example plot
-# cdc_plots$plot[[1]]  
 
+#example plot
+cdc_plots$plot[[1]]  
+
+#saving all plots to folder
 fs::dir_create(here::here("plots"))
 county <- str_replace_all(tolower(cdc_plots$fips), " ", "-")
 path <- here::here("plots", glue("{county}.png"))
@@ -203,6 +208,8 @@ walk2(path, cdc_plots$plot, ggsave,
 
 ```{r}
 #table of CDC data
+#this table appears in the app
+
 cmap2020_2 <- app_data %>% 
   mutate(fips = as.integer(fips))
 
