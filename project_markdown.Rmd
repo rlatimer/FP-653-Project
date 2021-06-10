@@ -149,7 +149,7 @@ covid_cases <- county_covid %>%
 
 export(covid_cases, "county_case_counts.csv")
 
-## Process Attendance Data
+## Import and Process Attendance Data
 county_data <- read.csv("schools_county_csv.csv") %>% 
   filter(year == 2020) %>% 
   rename(fips = countyfips3) %>% 
@@ -160,8 +160,10 @@ county_data <- read.csv("schools_county_csv.csv") %>%
 
 export(county_data, "app_attendance_data.csv")
 
+## Combine Attendance Data and COVID Case Data
 app_data <- county_data %>% 
-  left_join(covid_cases)
+  left_join(covid_cases) %>% 
+  filter(state_abb == "CA" | state_abb == "OR" | state_abb == "WA")
 
 export(app_data, "app_data.csv")
 
@@ -175,42 +177,6 @@ write_sf(wst_cst, "wst_cst.shp")
 
 ```
 
-```{r}
-
-#Chris' mapping stuff
-## Import Map Data
-map_url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
-
-#Join different data sources
-covid_data <- county_data %>% 
-    left_join(covid_cases, by = c("fips", "month"))
-
-
-
-counties_json <- rjson::fromJSON(file = url) %>% 
-  unnest()
-
-export(covid_data, "app_data.csv")
-
-
-wst_cst <- tigris::counties(state = c("California", "Oregon", "Washington")) %>% 
-  janitor::clean_names() %>% 
-  select(geoid, geometry) %>% 
-  rename(fips = geoid)
-
-us_map <- tigris::counties() %>% 
-  janitor::clean_names()
-
-us_map <- us_map %>% 
-  janitor::clean_names() %>% 
-  select(geoid, geometry) %>% 
-  rename(fips = geoid)
-
-
-write_sf(us_map, "us_county_geom.shp")
-write_sf(wst_cst, "wst_cst.shp")
-
-```
 
 
 ```{r}
@@ -233,7 +199,7 @@ cdc_plots <- county_covid %>% #need to reference county_covid, watch out for som
   })
   )
 #example plot
-cdc_plots$plot[[1]]  
+# cdc_plots$plot[[1]]  
 
 fs::dir_create(here::here("plots"))
 county <- str_replace_all(tolower(cdc_plots$fips), " ", "-")
