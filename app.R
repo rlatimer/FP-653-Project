@@ -9,7 +9,6 @@
 # This app relies on 'urbnmapr'. Users may need to install this first by running the following line:
 # devtools::install_github("UrbanInstitute/urbnmapr")
 
-needs(tidyverse, sf, tmaptools, tmap, covidcast, reactable)
 library(shiny)
 library(plotly)
 library(scales)
@@ -23,48 +22,21 @@ library(stringr)
 library(glue)
 library(RSocrata)
 library(reactable)
+library(sf)
+library(tmap)
+library(tmaptools)
 
 
 tmap_mode("view")
-
-g <- list(
-    scope = 'usa',
-    projection = list(type = 'albers usa'),
-    showlakes = TRUE,
-    lakecolor = toRGB('white')
-)
-
-geo_data <- read_sf("wst_cst.shp")
-
-county_demo <- county_census %>% 
-    janitor::clean_names() %>% 
-    select(fips, popestimate2019)
-
 options(scipen = 999)
 
-covid_cases <- read_csv("county_case_counts.csv") %>% 
-    mutate(fips = str_pad(fips, width = 5, side = "left", pad = "0")) %>% 
-    rename(month = case_month) %>% 
-    group_by(fips, month) %>% 
-    mutate(all_cases = sum(total_cases)) %>% 
-    ungroup() %>% 
-    left_join(county_demo) %>% 
-    distinct(month, fips, all_cases, popestimate2019) %>% 
-    group_by(fips, month) %>% 
-    mutate(capita_covid = round((all_cases/(popestimate2019/100000)), 2),
-           per_pop = round((1/(all_cases/popestimate2019)), 0),
-           share_pop = paste("1 in", per_pop, sep = " ")) %>% 
-    select(fips, month, capita_covid, all_cases, per_pop, share_pop)
-
-
-county_data <- read_csv("app_attendance_data.csv") %>% 
-    left_join(covid_cases)
+geo_data <- read_sf("wst_cst.shp")
+county_data <- read_csv("app_data.csv")
 
 county_data <- geo_data %>% 
     left_join(county_data, by = "fips") %>% 
     mutate(county_name = str_to_title(county_name))
 
-str(county_demo)
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(theme = shinytheme("flatly"),
@@ -118,17 +90,6 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                     ),
                     
                     # Show a plot of the generated distribution
-<<<<<<< Updated upstream
-                    mainPanel(
-                        tabsetPanel(type = "tabs",
-                        tabPanel("GGPlots", plotOutput("map")),
-                        tabPanel("TMaps",
-                                 tmapOutput("tmap2"),
-                                 reactableOutput("table")),
-                        tabPanel("Plotly", plotlyOutput("plotly"), h5("Rendering takes some time."))
-                    )
-                ))
-=======
                     mainPanel(tabsetPanel(
                         type = "tabs",
                         tabPanel(
@@ -140,7 +101,6 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                         )
                     ))
                 )
->>>>>>> Stashed changes
 )
 
 # Define server logic required to draw a histogram
@@ -172,7 +132,6 @@ server <- function(input, output) {
         }
     })
     
-<<<<<<< Updated upstream
 data <- reactive({
     county_data %>% 
         filter(month == month())
@@ -188,18 +147,7 @@ state_data <- reactive({
         filter(month == month(),
                state_abb == state())
 })
-=======
-    state_all <- reactive({
-        county_data %>%
-            filter(state_abb == input$state)
-    })
-    
-    state_data <- reactive({
-        county_data %>%
-            filter(month == input$month,
-                   state_abb == input$state)
-    })
->>>>>>> Stashed changes
+
 
     # output$map <- renderPlot({
     #     data() %>%
@@ -236,7 +184,6 @@ output$map <- renderPlot({
 
 output$tmap2 <- renderTmap({
     tm_shape(state_data()) +
-<<<<<<< Updated upstream
         tm_polygons(variable(), 
                     popup.vars = c(
             "County Name" = "county_name",
@@ -246,7 +193,6 @@ output$tmap2 <- renderTmap({
                    palette = "red", alpha = 0.5,
                    size.max = max(state_all()$capita_covid)) +
         tm_text("county_name", size = 0.4)
-=======
         if (input$share_closed == "mean_change") {
             tm_polygons(
                 variable(),
@@ -296,7 +242,6 @@ output$tmap2 <- renderTmap({
                     )
             )
     }
->>>>>>> Stashed changes
 })
 
 rv_map <-reactiveValues()
@@ -343,29 +288,6 @@ output$table <- renderReactable({
     
 })
 
-
-#adding state boundaries
-states <- plot_usmap(
-    "states", 
-    color = "black",
-    fill = alpha(0.01)
-) 
-    output$plotly <- renderPlotly({
-        p <- plotly::plot_ly() %>%
-            add_trace(
-                type = "choropleth",
-                geojson = counties_json,
-                locations = data()$fips,
-                z = data()$mean_all_change,
-                text = data()$county_name,
-                colorscale = "Viridis",
-                zmin = -100,
-                zmax = 100,
-                marker = list(line = list(width = 0))
-            ) %>% colorbar(title = "Mean Attendance Change (%)") %>%
-            layout(title = "2020 US School Attendance Change by County") %>% layout(geo = g)
-    }) %>% 
-        shiny::bindCache(input$month)
 }
 # Run the application 
 shinyApp(ui = ui, server = server)
