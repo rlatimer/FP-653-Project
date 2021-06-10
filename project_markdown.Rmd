@@ -1,6 +1,7 @@
 ---
 title: "FP 653 Project Script"
 output: html_document
+runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
@@ -166,18 +167,18 @@ cdc_plots <- app_data %>% #need to reference county_covid, watch out for some co
   nest() %>% 
   mutate(plot = pmap(list(fips, data), ~{
     ggplot(..2, aes(x=month,
-                    y=total_cases,
-                    color = age_group)) +
+                    y=all_cases
+                    )) +
       geom_point() +
       geom_line(alpha = 0.7, size = 1) +
-      scale_x_discrete(limits = c(0, max(app_data$month)), 
+      scale_x_discrete(limits = factor(c(0,max(app_data$month))), 
                        expand = c(0, 0)) +
       labs(title = glue("County with FIPS code: {.x} "),
            x = "Month in 2020",
-           y = "Total Cases",
-           color = 'Age Group')
+           y = "Total Cases")
   })
   )
+cdc_plots$plot[[3]]
 #example plot
 # cdc_plots$plot[[1]]  
 
@@ -228,8 +229,7 @@ cdc_table
 
 table_attendance <- app_data %>% #change data to master dataframe
   ungroup() %>%
-  filter(state_abb == "OR") %>% #remove this once consolidated dataframe is done
-  select(month, county_name, total_students, number_schools, share_all_closed_25, share_all_closed_50, share_all_closed_75, mean_all_change, fips) %>% #watch out for what fips is called later on
+  select(month_names, county_name, total_students, number_schools, share_all_closed_25, share_all_closed_50, share_all_closed_75, mean_all_change) %>% #watch out for what fips is called later on
   rename("Ratio of Schools with at least 25% visitor decline from 2019" = share_all_closed_25,
          "Ratio of Schools with at least 50% visitor decline from 2019" = share_all_closed_50,
          "Ratio of Schools with at least 75% visitor decline from 2019" = share_all_closed_75,
